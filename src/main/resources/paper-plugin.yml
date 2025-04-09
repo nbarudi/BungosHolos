@@ -1,0 +1,5 @@
+name: BungosHolos
+version: 1.0.0
+main: ca.bungo.holos.BungosHolos
+api-version: 1.21
+author: Bungo
