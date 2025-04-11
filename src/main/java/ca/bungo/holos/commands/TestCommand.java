@@ -9,6 +9,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -44,6 +45,7 @@ public class TestCommand extends BaseCommand {
         baseLocation.setYaw(player.getYaw() - 180);
 
         hologram.setBackgroundColor(Color.AQUA);
+        hologram.setBillboard(Display.Billboard.VERTICAL);
 
         hologram.spawn(baseLocation);
         holograms.add(hologram);

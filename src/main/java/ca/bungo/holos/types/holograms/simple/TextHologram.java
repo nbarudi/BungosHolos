@@ -8,6 +8,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
@@ -30,6 +31,7 @@ public class TextHologram implements Hologram {
     private TextDisplay display = null;
 
     private boolean persistent;
+    private Display.Billboard billboard = Display.Billboard.FIXED;
     private Color textColor;
     private Color backgroundColor;
     private TextDisplay.TextAlignment textAlignment;
@@ -58,6 +60,7 @@ public class TextHologram implements Hologram {
         display.setBackgroundColor(backgroundColor);
         display.setPersistent(persistent);
         display.setAlignment(textAlignment);
+        display.setBillboard(billboard);
 
         display.setTransformationMatrix(transform);
     }
@@ -70,6 +73,7 @@ public class TextHologram implements Hologram {
         display.setPersistent(persistent);
         display.setTransformationMatrix(transform);
         display.setAlignment(textAlignment);
+        display.setBillboard(billboard);
     }
 
     /**
