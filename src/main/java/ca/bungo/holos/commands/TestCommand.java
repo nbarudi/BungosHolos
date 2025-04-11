@@ -1,7 +1,7 @@
 package ca.bungo.holos.commands;
 
-import ca.bungo.holos.types.holograms.Hologram;
-import ca.bungo.holos.types.holograms.simple.TextHologram;
+import ca.bungo.holos.api.holograms.SimpleHologram;
+import ca.bungo.holos.api.holograms.simple.TextSimpleHologram;
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.*;
 import me.lucko.spark.paper.common.command.sender.CommandSender;
@@ -14,13 +14,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @CommandAlias("test|t|te")
 public class TestCommand extends BaseCommand {
 
-    private final List<Hologram> holograms = new ArrayList<>();
+    private final List<SimpleHologram<?>> simpleHolograms = new ArrayList<>();
 
     @Dependency
     private Plugin bungosHolos;
@@ -39,7 +38,7 @@ public class TestCommand extends BaseCommand {
     @Syntax("[message]")
     @Description("Spawn a text hologram")
     public void onTextHologram(Player player, String message) {
-        TextHologram hologram = new TextHologram(message);
+        TextSimpleHologram hologram = new TextSimpleHologram(message);
         Location baseLocation = player.getEyeLocation().add(player.getLocation().getDirection().multiply(2));
         baseLocation.setPitch(0);
         baseLocation.setYaw(player.getYaw() - 180);
@@ -48,16 +47,16 @@ public class TestCommand extends BaseCommand {
         hologram.setBillboard(Display.Billboard.VERTICAL);
 
         hologram.spawn(baseLocation);
-        holograms.add(hologram);
+        simpleHolograms.add(hologram);
     }
 
     @Subcommand("clean")
     @Description("Clean up spawned holograms")
     public void onCleanupHolograms(Player player) {
-        for(Hologram hologram : holograms) {
-            hologram.remove();
+        for(SimpleHologram<?> simpleHologram : simpleHolograms) {
+            simpleHologram.remove();
         }
-        holograms.clear();
+        simpleHolograms.clear();
         player.sendMessage(Component.text("Holograms cleaned!", NamedTextColor.YELLOW));
     }
 
