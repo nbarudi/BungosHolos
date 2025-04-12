@@ -1,12 +1,18 @@
 package ca.bungo.holos.api.holograms;
 
 import ca.bungo.holos.HologramRegistry;
+import ca.bungo.holos.utility.ComponentUtility;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.apache.commons.lang.NotImplementedException;
 import org.bukkit.Location;
 import org.bukkit.entity.Display;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.AxisAngle4f;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -23,14 +29,13 @@ import java.util.UUID;
  * */
 @Getter
 @Setter
-public abstract class SimpleHologram<T extends Display> implements Hologram {
+public abstract class SimpleHologram<T extends Display> implements Hologram, Editable {
 
     @Setter(AccessLevel.PROTECTED)
     protected String uuid;
 
     private Matrix4f transform;
 
-    @Getter(AccessLevel.PROTECTED)
     @Setter(AccessLevel.NONE)
     private Location location;
 
@@ -104,74 +109,209 @@ public abstract class SimpleHologram<T extends Display> implements Hologram {
     /**
      * Teleport the hologram to supplied location
      * @param location Where to teleport to
-     * @return This TextHologram
      * */
-    public SimpleHologram<T> teleport(Location location) {
+    public void teleport(Location location) {
         this.location = location;
-        if(display == null) return this;
+        if(display == null) return;
         display.teleport(location);
-        return this;
+    }
+
+    /**
+     * Set the yaw of the display entity
+     * @param yaw What to set the yaw to
+     * */
+    public void setYaw(float yaw) {
+        this.location.setYaw(yaw);
+        this.display.teleport(location);
+    }
+
+    /**
+     * Set the pitch of the display entity
+     * @param pitch What to set the pitch to
+     * @return This SimpleHologram
+     * */
+    public void setPitch(float pitch) {
+        this.location.setPitch(pitch);
+        this.display.teleport(location);
     }
 
     /**
      * Translate the text display by supplied offset in local space
      * If you want to fully move the display use the {@link #teleport(Location)}
      * @param offset Offset to translate the hologram by in local space
-     * @return This TextHologram
      * */
-    public SimpleHologram<T> translate(Vector3f offset) {
+    public void translate(Vector3f offset) {
         transform.translate(offset);
-        return this;
     }
 
     /**
      * Scale the hologram by a universal amount
      * @param scale Universal scale for the hologram
-     * @return This TextHologram
      * */
-    public SimpleHologram<T> scale(float scale) {
+    public void scale(float scale) {
         transform.scale(scale);
-        return this;
     }
 
     /**
      * Scale the hologram by a dynamic amount
      * @param scale Universal scale for the hologram
-     * @return This TextHologram
      * */
-    public SimpleHologram<T> scale(Vector3f scale) {
+    public void scale(Vector3f scale) {
         transform.scale(scale);
-        return this;
     }
 
     /**
      * Rotate the text display along the Local X Axis.
+     *
      * @param angle Angle in Degrees to rotate by
-     * @return This TextHologram
-     * */
-    public SimpleHologram<T> rotateX(float angle) {
+     */
+    public void rotateX(float angle) {
         transform.rotate(new AxisAngle4f((float) Math.toRadians(angle), 1, 0, 0));
-        return this;
     }
 
     /**
      * Rotate the text display along the Local Y Axis.
+     *
      * @param angle Angle in Degrees to rotate by
-     * @return This TextHologram
-     * */
-    public SimpleHologram<T> rotateY(float angle) {
+     */
+    public void rotateY(float angle) {
         transform.rotate(new AxisAngle4f((float) Math.toRadians(angle), 0, 1, 0));
-        return this;
     }
 
     /**
      * Rotate the text display along the Local Z Axis.
+     *
      * @param angle Angle in Degrees to rotate by
-     * @return This TextHologram
-     * */
-    public SimpleHologram<T> rotateZ(float angle) {
+     */
+    public void rotateZ(float angle) {
         transform.rotate(new AxisAngle4f((float) Math.toRadians(angle), 0, 0, 1));
-        return this;
     }
 
+    @Override
+    public boolean onEdit(@NotNull Player editor, @Nullable String field, String... values) {
+        if(field == null){
+            String editMessage = ComponentUtility.format(
+                    """
+                    &eHere are the fields that you're able to edit for Simple Holograms:
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit yaw VALUE'>&byaw Number &e- Set the yaw of the hologram
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit pitch VALUE'>&bpitch Number &e- Set the pitch of the hologram
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit scale VALUE'>&bscale Number &e- Scale the hologram by value (Multiplies does not set)
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit scale x y z'>&bscale Number Number Number &e- Scale the hologram x,y,z
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit rotatex VALUE'>&brotatex Number &e- Rotate along the local X (Adds, does not set)
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit rotatey VALUE'>&brotatey Number &e- Rotate along the local Y (Adds, does not set)
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit rotatez VALUE'>&brotatez Number &e- Rotate along the local Z (Adds, does not set)""");
+            editor.sendMessage(ComponentUtility.convertToComponent(editMessage));
+            return true;
+        }
+
+        boolean succeeded = false;
+        switch (field.toLowerCase()){
+            case "scale":
+                if(values.length == 1){
+                    try {
+                        float scale = Float.parseFloat(values[0]);
+                        this.scale(scale);
+                        succeeded = true;
+                        this.redraw();
+                        editor.sendMessage(Component.text("Scaled the hologram by " + scale, NamedTextColor.YELLOW));
+                        break;
+                    } catch (NumberFormatException e) {
+                        editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
+                    }
+                }
+                else if (values.length == 3){
+                    try {
+                        float x = Float.parseFloat(values[0]);
+                        float y = Float.parseFloat(values[0]);
+                        float z = Float.parseFloat(values[0]);
+                        this.scale(new Vector3f(x, y, z));
+                        succeeded = true;
+                        this.redraw();
+                        editor.sendMessage(Component.text("Scaled the hologram by " + x + ", " + y + ", " + z, NamedTextColor.YELLOW));
+                        break;
+                    } catch (NumberFormatException e) {
+                        editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
+                    }
+                }
+                else {
+                    editor.sendMessage(Component.text("Bad arguments", NamedTextColor.RED));
+                    break;
+                }
+                break;
+            case "yaw":
+                if(values.length == 0){
+                    editor.sendMessage(Component.text("You must supply a number!", NamedTextColor.RED));
+                    break;
+                }
+                try {
+                    float value = Float.parseFloat(values[0]);
+                    this.setYaw(value);
+                    editor.sendMessage(Component.text("Set the yaw of the hologram to " + value, NamedTextColor.YELLOW));
+                    succeeded = true;
+                } catch (NumberFormatException e) {
+                    editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
+                }
+                break;
+            case "pitch":
+                if(values.length == 0){
+                    editor.sendMessage(Component.text("You must supply a number!", NamedTextColor.RED));
+                    break;
+                }
+                try {
+                    float value = Float.parseFloat(values[0]);
+                    this.setPitch(value);
+                    editor.sendMessage(Component.text("Set the pitch of the hologram to " + value, NamedTextColor.YELLOW));
+                    succeeded = true;
+                } catch (NumberFormatException e) {
+                    editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
+                }
+                break;
+            case "rotatex":
+                if(values.length == 0){
+                    editor.sendMessage(Component.text("You must supply a number!", NamedTextColor.RED));
+                    break;
+                }
+                try {
+                    float rotateX = Float.parseFloat(values[0]);
+                    this.rotateX(rotateX);
+                    this.redraw();
+                    editor.sendMessage(Component.text("Rotated " + rotateX + " degrees along the X axis!", NamedTextColor.YELLOW));
+                    succeeded = true;
+                } catch (NumberFormatException e) {
+                    editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
+                }
+                break;
+            case "rotatey":
+                if(values.length == 0){
+                    editor.sendMessage(Component.text("You must supply a number!", NamedTextColor.RED));
+                    break;
+                }
+                try {
+                    float rotateY = Float.parseFloat(values[0]);
+                    this.rotateY(rotateY);
+                    this.redraw();
+                    editor.sendMessage(Component.text("Rotated " + rotateY + " degrees along the Y axis!", NamedTextColor.YELLOW));
+                    succeeded = true;
+                } catch (NumberFormatException e) {
+                    editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
+                }
+                break;
+            case "rotatez":
+                if(values.length == 0){
+                    editor.sendMessage(Component.text("You must supply a number!", NamedTextColor.RED));
+                    break;
+                }
+                try {
+                    float rotateZ = Float.parseFloat(values[0]);
+                    this.rotateZ(rotateZ);
+                    this.redraw();
+                    editor.sendMessage(Component.text("Rotated " + rotateZ + " degrees along the Z axis!", NamedTextColor.YELLOW));
+                    succeeded = true;
+                } catch (NumberFormatException e) {
+                    editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
+                }
+                break;
+        }
+        return succeeded;
+    }
 }

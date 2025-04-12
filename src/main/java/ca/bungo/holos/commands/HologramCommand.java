@@ -10,20 +10,27 @@ import co.aikar.commands.*;
 import co.aikar.commands.annotation.*;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 @CommandAlias("holo|hologram|bungoshologram|bh")
 public class HologramCommand extends BaseCommand {
 
+    private Map<String, String> selectedHolo;
+
     public HologramCommand(){
         CommandCompletions<BukkitCommandCompletionContext> commandCompletions = BungosHolos.commandManager.getCommandCompletions();
         commandCompletions.registerCompletion("holotypes", c -> List.of("text", "block", "item", "entity"));
-        commandCompletions.registerCompletion("holouuids", c -> HologramRegistry.getRegisteredHolograms().keySet());
+        commandCompletions.registerCompletion("holouuids", c -> HologramRegistry.getValidHologramIdentifiers());
+
+        selectedHolo = new HashMap<>();
     }
 
     @Default
@@ -47,7 +54,7 @@ public class HologramCommand extends BaseCommand {
 
     @Subcommand("create")
     @Syntax("<type>")
-    @Description("Create a new hologram of the supplied type (You will set it up after)")
+    @Description("Create a new hologram of the supplied type (You will set it up after).")
     @CommandCompletion("@holotypes")
     @CommandPermission("bungosholos.create")
     public void createHologram(Player sender, String type) {
@@ -69,13 +76,81 @@ public class HologramCommand extends BaseCommand {
         }
     }
 
+    @Subcommand("delete")
+    @Syntax("[uuid/alias] - Or currently selected if no uuid supplied")
+    @Description("Deletes referenced hologram or currently selected one")
+    @CommandPermission("bungosholos.delete")
+    @CommandCompletion("@holouuids")
+    public void deleteHologram(Player sender, @Optional String uuid) {
+        if(uuid == null){
+            String selected = selectedHolo.get(sender.getUniqueId().toString());
+            if(selected == null){
+                sender.sendMessage(Component.text("No hologram selected and no identifier supplied", NamedTextColor.RED));
+                return;
+            }
+            Hologram hologram = HologramRegistry.getHologram(selected);
+            if(hologram == null){
+                sender.sendMessage(Component.text("Hologram not found!", NamedTextColor.RED));
+                return;
+            }
+            HologramRegistry.unregisterHologram(hologram);
+            hologram.remove();
+            selectedHolo.remove(selected);
+            sender.sendMessage(Component.text("Hologram deleted", NamedTextColor.YELLOW));
+        }
+        else {
+            Hologram hologram = HologramRegistry.getHologram(uuid);
+            if(hologram == null){
+                sender.sendMessage(Component.text("Hologram not found!", NamedTextColor.RED));
+                return;
+            }
+            HologramRegistry.unregisterHologram(hologram);
+            hologram.remove();
+            selectedHolo.remove(uuid);
+            sender.sendMessage(Component.text("Hologram deleted", NamedTextColor.YELLOW));
+        }
+    }
+
+    @Subcommand("select")
+    @Syntax("[uuid/alias] - Empty for current selected.")
+    @Description("Select a hologram for future commands.")
+    @CommandPermission("bungosholos.select")
+    @CommandCompletion("@holouuids @nothing")
+    public void selectHologram(Player player, @Optional String identifier){
+        if(identifier == null){
+            String selected = selectedHolo.get(player.getUniqueId().toString());
+            if(selected == null){
+                player.sendMessage(ComponentUtility.convertToComponent("&eYou do not have a hologram selected!"));
+            }
+            else {
+                player.sendMessage(ComponentUtility.convertToComponent("&eYour current hologram is: &9" + selected + "&e!"));
+            }
+            return;
+        }
+        Hologram hologram = HologramRegistry.getHologram(identifier);
+        if(hologram == null) {
+            player.sendMessage(Component.text("Hologram not found.", NamedTextColor.RED));
+            return;
+        }
+        selectedHolo.put(player.getUniqueId().toString(), identifier);
+        player.sendMessage(ComponentUtility.convertToComponent("&eYou have selected the hologram: &9" + identifier + "&e!"));
+        player.sendMessage(ComponentUtility.convertToComponent(
+                        "<hover:show_text:'Click to see editable fields'><click:run_command:'/holo edit'>&eClick to see editable fields</hover>")
+        );
+    }
+
     @Subcommand("edit")
-    @Syntax("<uuid/alias> [field] [data]")
+    @Syntax("[field] [data]")
     @Description("Edit the hologram defined by the UUID.")
     @CommandPermission("bungosholos.edit")
-    @CommandCompletion("@holouuids")
-    public void editHologram(Player sender, String uuid, @Optional String field, @Optional String... data) {
-        Hologram hologram = HologramRegistry.getHologram(uuid);
+    @CommandCompletion("@nothing")
+    public void editHologram(Player sender, @Optional String field, @Optional String... data) {
+        String selected = selectedHolo.get(sender.getUniqueId().toString());
+        if(selected == null){
+            sender.sendMessage(Component.text("You do not have a hologram selected!.", NamedTextColor.RED));
+            sender.sendMessage(Component.text("/holo select IDENTIFIER.", NamedTextColor.YELLOW));
+        }
+        Hologram hologram = HologramRegistry.getHologram(selected);
         if(hologram == null) {
             sender.sendMessage(Component.text("Hologram not found.", NamedTextColor.RED));
             return;
@@ -85,21 +160,100 @@ public class HologramCommand extends BaseCommand {
             return;
         }
         sender.sendMessage(ComponentUtility.convertToComponent("&eNow editing hologram: &9" + hologram.getUniqueIdentifier()));
-        ((Editable) hologram).onEdit(sender, field, data);
+        if(!((Editable) hologram).onEdit(sender, field, data)){
+            sender.sendMessage(Component.text("Something went wrong when editing the hologram...", NamedTextColor.RED));
+        }
     }
 
 
     @Subcommand("alias")
     @Syntax("<uuid> <alias>")
-    @Description("Set a friendly alias for a holograms UUID")
+    @Description("Set a friendly alias for a holograms UUID.")
     @CommandPermission("bungosholos.alias")
-    @CommandCompletion("@holouuids")
+    @CommandCompletion("@holouuids @nothing")
     public void setHologramAlias(Player sender, String uuid, String alias) {
         if(HologramRegistry.defineAlias(uuid, alias)) {
             sender.sendMessage(ComponentUtility.convertToComponent("&eDefined Alias &b" + alias + " &efor hologram &b" + uuid));
             return;
         }
         sender.sendMessage(ComponentUtility.convertToComponent("&cCould not define an alias for the hologram."));
+    }
+
+    @Subcommand("list")
+    @Description("List all currently registered Holograms.")
+    @CommandPermission("bungosholos.list")
+    public void listHolograms(Player sender) {
+        Map<String, String> uuidToAlias = new HashMap<>();
+        for(Map.Entry<String, String> entry : HologramRegistry.getHologramAliases().entrySet()) {
+            uuidToAlias.put(entry.getValue(), entry.getKey());
+        }
+
+        StringBuilder hologramList = new StringBuilder("&eHere are currently registered Holograms:\n");
+        for(String uuid : HologramRegistry.getRegisteredHolograms().keySet()) {
+            if(uuidToAlias.containsKey(uuid)) {
+                hologramList.append("&e- &9").append(uuidToAlias.remove(uuid)).append("&7(").append(uuid).append(")\n");
+            }
+            else {
+                hologramList.append("&e- &9").append(uuid).append("\n");
+            }
+        }
+        sender.sendMessage(ComponentUtility.convertToComponent(hologramList.substring(0, hologramList.length() - 1)));
+    }
+
+    @Subcommand("bring")
+    @Description("Bring selected hologram to you.")
+    @Syntax("[eye/front/feet] - Optional what position to teleport to")
+    @CommandCompletion("eye|front|feet")
+    @CommandPermission("bungosholos.bring")
+    public void bringHologram(Player sender, @Default("feet") String position) {
+        String selected = selectedHolo.get(sender.getUniqueId().toString());
+        if(selected == null){
+            sender.sendMessage(Component.text("You do not have a hologram selected!", NamedTextColor.RED));
+            return;
+        }
+
+        Hologram hologram = HologramRegistry.getHologram(selected);
+        if(hologram == null) {
+            sender.sendMessage(Component.text("Hologram not found.", NamedTextColor.RED));
+            return;
+        }
+
+        Location goingTo;
+        if(position.equalsIgnoreCase("feet")){
+            goingTo = sender.getLocation();
+        }
+        else if(position.equalsIgnoreCase("front")){
+            Location baseLocation = sender.getEyeLocation();
+            baseLocation.add(sender.getLocation().getDirection().normalize().multiply(2f));
+            baseLocation.setYaw(sender.getLocation().getYaw() - 180);
+            goingTo = baseLocation;
+        }
+        else {
+            goingTo = sender.getEyeLocation();
+        }
+
+
+        hologram.teleport(goingTo);
+        sender.sendMessage(Component.text("Hologram has been teleported to your position!", NamedTextColor.YELLOW));
+    }
+
+    @Subcommand("goto")
+    @Description("Goto selected hologram.")
+    @CommandPermission("bungosholos.goto")
+    public void gotoHologram(Player sender) {
+        String selected = selectedHolo.get(sender.getUniqueId().toString());
+        if(selected == null){
+            sender.sendMessage(Component.text("You do not have a hologram selected!", NamedTextColor.RED));
+            return;
+        }
+
+        Hologram hologram = HologramRegistry.getHologram(selected);
+        if(hologram == null) {
+            sender.sendMessage(Component.text("Hologram not found.", NamedTextColor.RED));
+            return;
+        }
+        sender.teleport(hologram.getLocation());
+        sender.sendMessage(Component.text("Teleported you to the hologram!", NamedTextColor.YELLOW));
     }
 
 }

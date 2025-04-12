@@ -45,11 +45,11 @@ public class ComponentUtility {
         return convertToComponent(
                 format("""
                         &eYou have created a new hologram.
-                        &eThe UUID of the hologram can be used to edit the hologram.
+                        &eThe UUID of the hologram can be used to select/edit the hologram.
                         
                         <hover:show_text:'&9Click here to copy the UUID'><click:copy_to_clipboard:'{}'><blue>&eUUID: &9{}</click></hover>
                         
-                        <hover:show_text:'<yellow>Click here to edit the hologram'><click:run_command:'/holo edit {}'><green>Click Here To Edit</hover>
+                        <hover:show_text:'<yellow>Click here to select the hologram'><click:run_command:'/holo select {}'><green>Click Here To Select</hover>
                         
                         &eYou can also define an Alias for the Hologram
                         
