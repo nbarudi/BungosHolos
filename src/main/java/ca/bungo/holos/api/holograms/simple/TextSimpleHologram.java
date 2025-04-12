@@ -1,10 +1,9 @@
 package ca.bungo.holos.api.holograms.simple;
 
-import ca.bungo.holos.api.holograms.Editable;
-import ca.bungo.holos.api.holograms.Hologram;
+import ca.bungo.holos.BungosHolos;
+import ca.bungo.holos.HologramRegistry;
 import ca.bungo.holos.api.holograms.SimpleHologram;
 import ca.bungo.holos.utility.ComponentUtility;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
@@ -17,8 +16,11 @@ import org.bukkit.entity.TextDisplay;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -36,7 +38,7 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
         super(TextDisplay.class);
         this.text = text;
 
-        this.persistent = false;
+        this.persistent = true;
         this.backgroundColor = Color.fromARGB(0,0,0,0);
         this.textAlignment = TextDisplay.TextAlignment.CENTER;
     }
@@ -59,13 +61,57 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
         display.text(ComponentUtility.convertToComponent(text));
         display.setBackgroundColor(backgroundColor);
         display.setPersistent(persistent);
-        display.setTransformationMatrix(getTransform());
+        display.setTransformation(getTransform());
         display.setAlignment(textAlignment);
         display.setBillboard(billboard);
     }
 
     @Override
     public void onRemove() {}
+
+    @Override
+    public void onDisable() throws IOException {
+        if(persistent)
+            super.onDisable();
+    }
+
+    @Override
+    public void saveUniqueContent(Map<String, Object> section) {
+        section.put("text", text);
+        section.put("persistent", persistent);
+        Map<String, Object> backgroundColorSection = new HashMap<>();
+        backgroundColorSection.put("alpha", backgroundColor.getAlpha());
+        backgroundColorSection.put("red", backgroundColor.getRed());
+        backgroundColorSection.put("green", backgroundColor.getGreen());
+        backgroundColorSection.put("blue", backgroundColor.getBlue());
+        section.put("background_color", backgroundColorSection);
+        section.put("text_alignment", textAlignment.name());
+        section.put("billboard", billboard.name());
+    }
+
+    public static TextSimpleHologram deserialize(Map<String, Object> data) {
+        Map<String, Object> uniqueData = (Map<String, Object>)data.get("unique_data");
+
+        TextSimpleHologram hologram = new TextSimpleHologram((String) uniqueData.get("text"));
+        HologramRegistry.unregisterHologram(hologram);
+        hologram.setPersistent((boolean) uniqueData.get("persistent"));
+        Map<String, Object> backgroundColorSection = (Map<String, Object>)uniqueData.get("background_color");
+        hologram.setBackgroundColor(Color.fromARGB(
+                (Integer)backgroundColorSection.get("alpha"),
+                (Integer)backgroundColorSection.get("red"),
+                (Integer)backgroundColorSection.get("green"),
+                (Integer)backgroundColorSection.get("blue")
+                ));
+        hologram.setTextAlignment(TextDisplay.TextAlignment.valueOf((String) uniqueData.get("text_alignment")));
+        hologram.setBillboard(Display.Billboard.valueOf((String) uniqueData.get("billboard")));
+
+        hologram.deserializeGeneric(data);
+
+        if(!BungosHolos.DISABLED) hologram.spawn(hologram.getLocation()); //For some reason Bukkit calls deserialize on shutdown and on startup..
+                                                                          //So you end up with like 4 extra entities spawned :\
+
+        return hologram;
+    }
 
     @Override
     public boolean onEdit(@NotNull Player editor, @Nullable String field, String... values) {
@@ -185,7 +231,7 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
                 }
                 String billboardType = values[0];
                 try {
-                    Display.Billboard toChange = Display.Billboard.valueOf(billboardType);
+                    Display.Billboard toChange = Display.Billboard.valueOf(billboardType.toUpperCase());
                     this.setBillboard(toChange);
                     this.redraw();
                     succeeded = true;
@@ -201,7 +247,7 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
                 }
                 String textAlign = values[0];
                 try {
-                    TextDisplay.TextAlignment toChange = TextDisplay.TextAlignment.valueOf(textAlign);
+                    TextDisplay.TextAlignment toChange = TextDisplay.TextAlignment.valueOf(textAlign.toUpperCase());
                     this.setTextAlignment(toChange);
                     this.redraw();
                     succeeded = true;

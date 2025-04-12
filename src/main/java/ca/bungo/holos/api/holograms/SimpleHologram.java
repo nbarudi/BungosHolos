@@ -7,17 +7,24 @@ import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.apache.commons.lang.NotImplementedException;
 import org.bukkit.Location;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Transformation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.AxisAngle4f;
-import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -30,12 +37,12 @@ import java.util.UUID;
  * */
 @Getter
 @Setter
-public abstract class SimpleHologram<T extends Display> implements Hologram, Editable {
+public abstract class SimpleHologram<T extends Display> implements Hologram, Editable, ConfigurationSerializable {
 
     @Setter(AccessLevel.PROTECTED)
     protected String uuid;
 
-    private Matrix4f transform;
+    private Transformation transform;
 
     @Setter(AccessLevel.NONE)
     private Location location;
@@ -50,7 +57,12 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
     public SimpleHologram(Class<T> clazz) {
         uuid = UUID.randomUUID().toString();
 
-        this.transform = new Matrix4f();
+        this.transform = new Transformation(
+                new Vector3f(0,0,0),
+                new Quaternionf(0,0,0,1),
+                new Vector3f(1,1,1),
+                new Quaternionf(0,0,0,1)
+        );
         this.clazz = clazz;
         HologramRegistry.registerHologram(this);
     }
@@ -74,10 +86,126 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
      * */
     public abstract void onRemove();
 
+    public abstract void saveUniqueContent(Map<String, Object> map);
+
+    public @NotNull Map<String, Object> serialize() {
+        Map<String, Object> map = new HashMap<>();
+
+        Map<String, Object> transformationMap = new HashMap<>();
+
+        Map<String, Object> translate = new HashMap<>();
+        translate.put("x", transform.getTranslation().x);
+        translate.put("y", transform.getTranslation().y);
+        translate.put("z", transform.getTranslation().z);
+
+        AxisAngle4f leftRot = new AxisAngle4f(transform.getLeftRotation());
+        Map<String, Object> leftRotation = new HashMap<>();
+        leftRotation.put("x", leftRot.x);
+        leftRotation.put("y", leftRot.y);
+        leftRotation.put("z", leftRot.z);
+        leftRotation.put("w", leftRot.angle);
+
+        Map<String, Object> scale = new HashMap<>();
+        scale.put("x", transform.getScale().x);
+        scale.put("y", transform.getScale().y);
+        scale.put("z", transform.getScale().z);
+
+        AxisAngle4f rightRot = new AxisAngle4f(transform.getRightRotation());
+        Map<String, Object> rightRotation = new HashMap<>();
+        rightRotation.put("x", rightRot.x);
+        rightRotation.put("y", rightRot.y);
+        rightRotation.put("z", rightRot.z);
+        rightRotation.put("w", rightRot.angle);
+
+
+        transformationMap.put("translate", translate);
+        transformationMap.put("left_rotation", leftRotation);
+        transformationMap.put("scale", scale);
+        transformationMap.put("right_rotation", rightRotation);
+
+        map.put("transform", transformationMap);
+
+        map.put("location", location);
+        map.put("uuid", uuid);
+        if (HologramRegistry.fetchAlias(this.getUniqueIdentifier()) != null) {
+            map.put("alias", HologramRegistry.fetchAlias(this.getUniqueIdentifier()));
+        }
+
+        Map<String, Object> uniqueData = new HashMap<>();
+        saveUniqueContent(uniqueData);
+
+        map.put("unique_data", uniqueData);
+        return map;
+    }
+
+    protected void deserializeGeneric(Map<String, Object> map) {
+        Map<String, Map<String, Object>> _transformation = (Map<String, Map<String, Object>>) map.get("transform");
+        Map<String, Object> _translate = _transformation.get("translate");
+        Map<String, Object> _leftRotation = _transformation.get("left_rotation");
+        Map<String, Object> _scale = _transformation.get("scale");
+        Map<String, Object> _rightRotation = _transformation.get("right_rotation");
+
+        Vector3f translate = new Vector3f(
+                (float)((double)_translate.get("x")),
+                (float)((double)_translate.get("y")),
+                (float)((double)_translate.get("z"))
+        );
+
+        AxisAngle4f leftRotation = new AxisAngle4f(
+                (float)((double)_leftRotation.get("w")),
+                (float)((double)_leftRotation.get("x")),
+                (float)((double)_leftRotation.get("y")),
+                (float)((double)_leftRotation.get("z"))
+        );
+
+        Vector3f scale = new Vector3f(
+                (float)((double)_scale.get("x")),
+                (float)((double)_scale.get("y")),
+                (float)((double)_scale.get("z"))
+        );
+
+        AxisAngle4f rightRotation = new AxisAngle4f(
+                (float)((double)_rightRotation.get("w")),
+                (float)((double)_rightRotation.get("x")),
+                (float)((double)_rightRotation.get("y")),
+                (float)((double)_rightRotation.get("z"))
+        );
+
+        translate(translate);
+        transform.getLeftRotation().set(leftRotation);
+        scale(scale);
+        transform.getRightRotation().set(rightRotation);
+
+        this.location = (Location)map.get("location");
+        this.setUuid((String) map.get("uuid"));
+
+        String alias = (String) map.get("alias");
+        if(alias != null) {
+            HologramRegistry.defineAlias(this.getUniqueIdentifier(), alias);
+        }
+    }
+
     @Override
-    public void onDisable() {
-        //ToDo: Save data to a file for this hologram
-        throw new NotImplementedException("Not implemented yet");
+    public void onDisable() throws IOException {
+        //Create configuration file
+        File file = new File(JavaPlugin.getProvidingPlugin(SimpleHologram.class).getDataFolder(), "holograms.yml");
+        if(!file.exists()) {
+            file.createNewFile();
+        }
+
+        //Load the configuration file api
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+
+        //Grab holograms: section
+        ConfigurationSection holograms = config.getConfigurationSection("holograms");
+        if(holograms == null) {
+            holograms = config.createSection("holograms");
+        }
+        if(this.getUniqueIdentifier() != null) {
+            holograms.set(this.getUniqueIdentifier(), this);
+        }
+        config.save(file);
+        if(display != null) display.setPersistent(false);
     }
 
     @Override
@@ -92,7 +220,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
     public void spawn(Location location) {
         this.location = location;
         display = location.getWorld().spawn(location, clazz);
-        display.setTransformationMatrix(getTransform());
+        display.setTransformation(transform);
         modifyDisplay();
     }
 
@@ -129,7 +257,6 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
     /**
      * Set the pitch of the display entity
      * @param pitch What to set the pitch to
-     * @return This SimpleHologram
      * */
     public void setPitch(float pitch) {
         this.location.setPitch(pitch);
@@ -142,7 +269,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
      * @param offset Offset to translate the hologram by in local space
      * */
     public void translate(Vector3f offset) {
-        transform.translate(offset);
+        transform.getTranslation().set(offset);
     }
 
     /**
@@ -150,7 +277,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
      * @param scale Universal scale for the hologram
      * */
     public void scale(float scale) {
-        transform.scale(scale);
+        transform.getScale().mul(scale);
     }
 
     /**
@@ -158,7 +285,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
      * @param scale Universal scale for the hologram
      * */
     public void scale(Vector3f scale) {
-        transform.scale(scale);
+        transform.getScale().mul(scale);
     }
 
     /**
@@ -166,20 +293,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
      * @param size Size to set the holograms scale to
      * */
     public void setSize(float size) {
-        Transformation transformation = new Transformation(
-                display.getTransformation().getTranslation(),
-                display.getTransformation().getLeftRotation(),
-                new Vector3f(size, size, size),
-                display.getTransformation().getRightRotation()
-        );
-        display.setTransformation(transformation);
-
-        Matrix4f newTransform = new Matrix4f();
-        newTransform.translate(transformation.getTranslation())
-                .rotate(transformation.getLeftRotation())
-                .scale(transformation.getScale())
-                .rotate(transformation.getRightRotation());
-        transform = newTransform;
+        transform.getScale().set(size);
     }
 
     /**
@@ -187,20 +301,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
      * @param size Size to set the holograms scale to
      * */
     public void setSize(Vector3f size) {
-        Transformation transformation = new Transformation(
-                display.getTransformation().getTranslation(),
-                display.getTransformation().getLeftRotation(),
-                size,
-                display.getTransformation().getRightRotation()
-        );
-        display.setTransformation(transformation);
-
-        Matrix4f newTransform = new Matrix4f();
-        newTransform.translate(transformation.getTranslation())
-                .rotate(transformation.getLeftRotation())
-                .scale(transformation.getScale())
-                .rotate(transformation.getRightRotation());
-        transform = newTransform;
+        transform.getScale().set(size);
     }
 
     /**
@@ -209,7 +310,8 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
      * @param angle Angle in Degrees to rotate by
      */
     public void rotateX(float angle) {
-        transform.rotate(new AxisAngle4f((float) Math.toRadians(angle), 1, 0, 0));
+        AxisAngle4f axisAngle = new AxisAngle4f((float)Math.toRadians(angle), 1, 0, 0);
+        transform.getLeftRotation().premul(new Quaternionf(axisAngle));
     }
 
     /**
@@ -218,7 +320,8 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
      * @param angle Angle in Degrees to rotate by
      */
     public void rotateY(float angle) {
-        transform.rotate(new AxisAngle4f((float) Math.toRadians(angle), 0, 1, 0));
+        AxisAngle4f axisAngle = new AxisAngle4f((float)Math.toRadians(angle), 0, 1, 0);
+        transform.getLeftRotation().premul(new Quaternionf(axisAngle));
     }
 
     /**
@@ -227,7 +330,8 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
      * @param angle Angle in Degrees to rotate by
      */
     public void rotateZ(float angle) {
-        transform.rotate(new AxisAngle4f((float) Math.toRadians(angle), 0, 0, 1));
+        AxisAngle4f axisAngle = new AxisAngle4f((float)Math.toRadians(angle), 0, 0, 1);
+        transform.getLeftRotation().premul(new Quaternionf(axisAngle));
     }
 
     @Override
@@ -267,8 +371,8 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
                 else if (values.length == 3){
                     try {
                         float x = Float.parseFloat(values[0]);
-                        float y = Float.parseFloat(values[0]);
-                        float z = Float.parseFloat(values[0]);
+                        float y = Float.parseFloat(values[1]);
+                        float z = Float.parseFloat(values[2]);
                         this.scale(new Vector3f(x, y, z));
                         succeeded = true;
                         this.redraw();
@@ -299,8 +403,8 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
                 else if (values.length == 3){
                     try {
                         float x = Float.parseFloat(values[0]);
-                        float y = Float.parseFloat(values[0]);
-                        float z = Float.parseFloat(values[0]);
+                        float y = Float.parseFloat(values[1]);
+                        float z = Float.parseFloat(values[2]);
                         this.setSize(new Vector3f(x, y, z));
                         succeeded = true;
                         this.redraw();

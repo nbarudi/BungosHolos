@@ -3,12 +3,16 @@ package ca.bungo.holos;
 
 import ca.bungo.holos.api.holograms.Hologram;
 import lombok.Getter;
+import org.bukkit.Location;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Entity;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 
 public class HologramRegistry {
 
@@ -103,9 +107,57 @@ public class HologramRegistry {
      * Generally handled by the plugin its self and should not need third party triggers
      * */
     public static void onServerDisable(){
-        registeredHolograms.forEach((id, hologram) -> {
-            hologram.onDisable();
-        });
+        for(Hologram hologram : registeredHolograms.values()) {
+            try {
+                hologram.onDisable();
+            } catch(IOException e){
+                BungosHolos.LOGGER.error("Error while disabling hologram {}", hologram.getUniqueIdentifier(), e);
+            }
+        }
+
+        File file = new File(JavaPlugin.getProvidingPlugin(HologramRegistry.class).getDataFolder(), "holograms.yml");
+        if(!file.exists()) return; //If no file that means no holograms to load.
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        ConfigurationSection section = config.getConfigurationSection("holograms");
+        if(section == null) return;
+
+        List<String> toRemove = new ArrayList<>();
+        for(String uuid : section.getKeys(false)) {
+            if(!registeredHolograms.containsKey(uuid)) {
+                toRemove.add(uuid);
+            }
+        }
+        for(String uuid : toRemove) {
+            section.set(uuid, null);
+        }
+        try {
+            config.save(file);
+        } catch (IOException e) {
+            BungosHolos.LOGGER.error("Error while saving holograms", e);
+        }
+    }
+
+    /**
+     * Triggered when the plugin is enabled
+     * Used to load any persistent holograms into the plugins record
+     * to make them editable via the plugin commands
+     * */
+    public static void onServerEnable(){
+        File file = new File(JavaPlugin.getProvidingPlugin(HologramRegistry.class).getDataFolder(), "holograms.yml");
+        if(!file.exists()) return; //If no file that means no holograms to load.
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        ConfigurationSection section = config.getConfigurationSection("holograms");
+        if(section == null) return;
+
+        for(String uuid : section.getKeys(false)) {
+            try {
+                Hologram hologram = (Hologram) section.get(uuid);
+                if(hologram == null || hologram.getUniqueIdentifier() == null) continue;
+                registerHologram(hologram);
+            } catch (ClassCastException e) {
+                BungosHolos.LOGGER.warn("Failed to load hologram {}", uuid, e);
+            }
+        }
     }
 
     /**

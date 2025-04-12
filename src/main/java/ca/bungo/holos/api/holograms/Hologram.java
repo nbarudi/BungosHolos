@@ -1,6 +1,12 @@
 package ca.bungo.holos.api.holograms;
 
 import org.bukkit.Location;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.serialization.ConfigurationSerializable;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.IOException;
+import java.util.Map;
 
 public interface Hologram {
 
@@ -13,7 +19,7 @@ public interface Hologram {
     /**
      * Method triggered when the server is shut down / reloaded
      * */
-    void onDisable();
+    void onDisable() throws IOException;
 
     /**
      * Method to remove the hologram
