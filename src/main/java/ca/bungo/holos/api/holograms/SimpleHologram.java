@@ -11,6 +11,7 @@ import org.apache.commons.lang.NotImplementedException;
 import org.bukkit.Location;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Transformation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.AxisAngle4f;
@@ -161,6 +162,48 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
     }
 
     /**
+     * Set the hologram's size to supplied value
+     * @param size Size to set the holograms scale to
+     * */
+    public void setSize(float size) {
+        Transformation transformation = new Transformation(
+                display.getTransformation().getTranslation(),
+                display.getTransformation().getLeftRotation(),
+                new Vector3f(size, size, size),
+                display.getTransformation().getRightRotation()
+        );
+        display.setTransformation(transformation);
+
+        Matrix4f newTransform = new Matrix4f();
+        newTransform.translate(transformation.getTranslation())
+                .rotate(transformation.getLeftRotation())
+                .scale(transformation.getScale())
+                .rotate(transformation.getRightRotation());
+        transform = newTransform;
+    }
+
+    /**
+     * Set the hologram's size to supplied value
+     * @param size Size to set the holograms scale to
+     * */
+    public void setSize(Vector3f size) {
+        Transformation transformation = new Transformation(
+                display.getTransformation().getTranslation(),
+                display.getTransformation().getLeftRotation(),
+                size,
+                display.getTransformation().getRightRotation()
+        );
+        display.setTransformation(transformation);
+
+        Matrix4f newTransform = new Matrix4f();
+        newTransform.translate(transformation.getTranslation())
+                .rotate(transformation.getLeftRotation())
+                .scale(transformation.getScale())
+                .rotate(transformation.getRightRotation());
+        transform = newTransform;
+    }
+
+    /**
      * Rotate the text display along the Local X Axis.
      *
      * @param angle Angle in Degrees to rotate by
@@ -192,11 +235,13 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
         if(field == null){
             String editMessage = ComponentUtility.format(
                     """
-                    &eHere are the fields that you're able to edit for Simple Holograms:
+                    &dHere are the fields that you're able to edit for Simple Holograms:
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit yaw VALUE'>&byaw Number &e- Set the yaw of the hologram
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit pitch VALUE'>&bpitch Number &e- Set the pitch of the hologram
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit scale VALUE'>&bscale Number &e- Scale the hologram by value (Multiplies does not set)
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit scale x y z'>&bscale Number Number Number &e- Scale the hologram x,y,z
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit size x y z'>&bsize Number Number Number &e- Set the hologram's x,y,z size
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit size VALUE'>&bsize Number &e- Set the hologram's size
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit rotatex VALUE'>&brotatex Number &e- Rotate along the local X (Adds, does not set)
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit rotatey VALUE'>&brotatey Number &e- Rotate along the local Y (Adds, does not set)
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit rotatez VALUE'>&brotatez Number &e- Rotate along the local Z (Adds, does not set)""");
@@ -228,6 +273,38 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
                         succeeded = true;
                         this.redraw();
                         editor.sendMessage(Component.text("Scaled the hologram by " + x + ", " + y + ", " + z, NamedTextColor.YELLOW));
+                        break;
+                    } catch (NumberFormatException e) {
+                        editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
+                    }
+                }
+                else {
+                    editor.sendMessage(Component.text("Bad arguments", NamedTextColor.RED));
+                    break;
+                }
+                break;
+            case "size":
+                if(values.length == 1){
+                    try {
+                        float scale = Float.parseFloat(values[0]);
+                        this.setSize(scale);
+                        succeeded = true;
+                        this.redraw();
+                        editor.sendMessage(Component.text("Set the hologram's size to " + scale, NamedTextColor.YELLOW));
+                        break;
+                    } catch (NumberFormatException e) {
+                        editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
+                    }
+                }
+                else if (values.length == 3){
+                    try {
+                        float x = Float.parseFloat(values[0]);
+                        float y = Float.parseFloat(values[0]);
+                        float z = Float.parseFloat(values[0]);
+                        this.setSize(new Vector3f(x, y, z));
+                        succeeded = true;
+                        this.redraw();
+                        editor.sendMessage(Component.text("Set the hologram's size to " + x + ", " + y + ", " + z, NamedTextColor.YELLOW));
                         break;
                     } catch (NumberFormatException e) {
                         editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
