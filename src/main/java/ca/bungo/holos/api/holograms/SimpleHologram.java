@@ -171,7 +171,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
                 (float)((double)_rightRotation.get("z"))
         );
 
-        translate(translate);
+        setOffset(translate);
         transform.getLeftRotation().set(leftRotation);
         scale(scale);
         transform.getRightRotation().set(rightRotation);
@@ -264,12 +264,21 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
     }
 
     /**
-     * Translate the text display by supplied offset in local space
+     * Offset the text display by supplied vector in local space
      * If you want to fully move the display use the {@link #teleport(Location)}
      * @param offset Offset to translate the hologram by in local space
      * */
-    public void translate(Vector3f offset) {
+    public void setOffset(Vector3f offset) {
         transform.getTranslation().set(offset);
+    }
+
+    /**
+     * Offset the text display by supplied vector in local space
+     * If you want to fully move the display use the {@link #teleport(Location)}
+     * @param offset Offset to translate the hologram by in local space
+     * */
+    public void addOffset(Vector3f offset) {
+        transform.getTranslation().add(offset);
     }
 
     /**
@@ -348,7 +357,11 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit size VALUE'>&bsize Number &e- Set the hologram's size
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit rotatex VALUE'>&brotatex Number &e- Rotate along the local X (Adds, does not set)
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit rotatey VALUE'>&brotatey Number &e- Rotate along the local Y (Adds, does not set)
-                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit rotatez VALUE'>&brotatez Number &e- Rotate along the local Z (Adds, does not set)""");
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit rotatez VALUE'>&brotatez Number &e- Rotate along the local Z (Adds, does not set)
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit offsetx VALUE'>&boffsetx Number &e- Offset along the local X (Adds, does not set)
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit offsety VALUE'>&boffsety Number &e- Offset along the local Y (Adds, does not set)
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit offsetz VALUE'>&boffsetz Number &e- Offset along the local Z (Adds, does not set)
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit setoffset x y z'>&bsetoffset Number Number Number &e- Offset to set position (Set's Offset)""");
             editor.sendMessage(ComponentUtility.convertToComponent(editMessage));
             return true;
         }
@@ -487,6 +500,68 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
                     this.rotateZ(rotateZ);
                     this.redraw();
                     editor.sendMessage(Component.text("Rotated " + rotateZ + " degrees along the Z axis!", NamedTextColor.YELLOW));
+                    succeeded = true;
+                } catch (NumberFormatException e) {
+                    editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
+                }
+                break;
+            case "offsetx":
+                if(values.length == 0){
+                    editor.sendMessage(Component.text("You must supply a number!", NamedTextColor.RED));
+                    break;
+                }
+                try {
+                    float offsetX = Float.parseFloat(values[0]);
+                    this.addOffset(new Vector3f(offsetX, 0, 0));
+                    this.redraw();
+                    editor.sendMessage(Component.text("Offset " + offsetX + " units along the X axis!", NamedTextColor.YELLOW));
+                    succeeded = true;
+                } catch (NumberFormatException e) {
+                    editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
+                }
+                break;
+            case "offsety":
+                if(values.length == 0){
+                    editor.sendMessage(Component.text("You must supply a number!", NamedTextColor.RED));
+                    break;
+                }
+                try {
+                    float offsetY = Float.parseFloat(values[0]);
+                    this.addOffset(new Vector3f(0, offsetY, 0));
+                    this.redraw();
+                    editor.sendMessage(Component.text("Offset " + offsetY + " units along the Y axis!", NamedTextColor.YELLOW));
+                    succeeded = true;
+                } catch (NumberFormatException e) {
+                    editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
+                }
+                break;
+            case "offsetz":
+                if(values.length == 0){
+                    editor.sendMessage(Component.text("You must supply a number!", NamedTextColor.RED));
+                    break;
+                }
+                try {
+                    float offsetZ = Float.parseFloat(values[0]);
+                    this.addOffset(new Vector3f(0, 0, offsetZ));
+                    this.redraw();
+                    editor.sendMessage(Component.text("Offset " + offsetZ + " units along the Z axis!", NamedTextColor.YELLOW));
+                    succeeded = true;
+                } catch (NumberFormatException e) {
+                    editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
+                }
+                break;
+            case "setoffset":
+                if(values.length != 3){
+                    editor.sendMessage(Component.text("You must supply 3 numbers!", NamedTextColor.RED));
+                    break;
+                }
+                try {
+                    float offsetX = Float.parseFloat(values[0]);
+                    float offsetY = Float.parseFloat(values[1]);
+                    float offsetZ = Float.parseFloat(values[2]);
+                    this.setOffset(new Vector3f(offsetX, offsetY, offsetZ));
+                    this.redraw();
+                    editor.sendMessage(Component.text("Set offset to " + offsetX + ", " + offsetY + ", " + offsetZ, NamedTextColor.YELLOW));
                     succeeded = true;
                 } catch (NumberFormatException e) {
                     editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
