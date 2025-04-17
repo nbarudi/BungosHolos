@@ -24,6 +24,7 @@ import org.joml.Vector3f;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -78,7 +79,11 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
     /**
      * Apply all modified settings to an already spawned Hologram
      * */
-    public abstract void redraw();
+    public void redraw() {
+        if(display == null) return;
+        display.setTransformation(transform);
+        modifyDisplay();
+    }
 
     /**
      * Method triggered when Hologram is removed
@@ -569,5 +574,25 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
                 break;
         }
         return succeeded;
+    }
+
+    @Override
+    public List<String> options(String option) {
+        return switch (option.toLowerCase()) {
+            case "scale", "size" -> List.of("<number>", "<x> <y> <z>");
+            case "yaw", "pitch", "rotatex", "rotatey", "rotatez", "offsetx", "offsety", "offsetz" ->
+                    List.of("<number>");
+            case "setoffset" -> List.of("<x> <y> <z>");
+            default -> List.of();
+        };
+    }
+
+    @Override
+    public List<String> fields() {
+        return List.of(
+                "yaw", "pitch", "scale",
+                "size", "rotatex", "rotatey",
+                "rotatez", "offsetx", "offsety",
+                "offsetz", "setoffset");
     }
 }

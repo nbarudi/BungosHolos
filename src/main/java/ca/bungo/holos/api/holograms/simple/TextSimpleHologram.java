@@ -55,18 +55,6 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
     }
 
     @Override
-    public void redraw() {
-        TextDisplay display = this.getDisplay();
-        if(display == null) return;
-        display.text(ComponentUtility.convertToComponent(text));
-        display.setBackgroundColor(backgroundColor);
-        display.setPersistent(persistent);
-        display.setTransformation(getTransform());
-        display.setAlignment(textAlignment);
-        display.setBillboard(billboard);
-    }
-
-    @Override
     public void onRemove() {}
 
     @Override
@@ -275,5 +263,34 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
 
     private List<String> getLines() {
         return new ArrayList<>(List.of(text.split("\n")));
+    }
+
+    @Override
+    public List<String> options(String option) {
+        return switch (option.toLowerCase()) {
+            case "text", "addline" -> List.of("<string>");
+            case "removeline", "bgcolor" -> List.of("<number>");
+            case "persist" -> List.of("True", "False");
+            case "textalign" ->
+                    List.of(TextDisplay.TextAlignment.LEFT.name(), TextDisplay.TextAlignment.RIGHT.name(), TextDisplay.TextAlignment.CENTER.name());
+            case "billboard" ->
+                    List.of(Display.Billboard.FIXED.name(), Display.Billboard.CENTER.name(), Display.Billboard.HORIZONTAL.name(), Display.Billboard.VERTICAL.name());
+            default -> super.options(option);
+        };
+    }
+
+    @Override
+    public List<String> fields() {
+        List<String> fields = new ArrayList<>();
+        fields.add("text");
+        fields.add("addline");
+        fields.add("removeline");
+        fields.add("lines");
+        fields.add("bgcolor");
+        fields.add("billboard");
+        fields.add("textalign");
+        fields.add("persist");
+        fields.addAll(super.fields());
+        return fields;
     }
 }

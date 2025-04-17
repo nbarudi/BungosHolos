@@ -4,6 +4,7 @@ import ca.bungo.holos.BungosHolos;
 import ca.bungo.holos.HologramRegistry;
 import ca.bungo.holos.api.holograms.Editable;
 import ca.bungo.holos.api.holograms.Hologram;
+import ca.bungo.holos.api.holograms.simple.ItemSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.TextSimpleHologram;
 import ca.bungo.holos.utility.ComponentUtility;
 import co.aikar.commands.*;
@@ -11,10 +12,13 @@ import co.aikar.commands.annotation.*;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +33,34 @@ public class HologramCommand extends BaseCommand {
         CommandCompletions<BukkitCommandCompletionContext> commandCompletions = BungosHolos.commandManager.getCommandCompletions();
         commandCompletions.registerCompletion("holotypes", c -> List.of("text", "block", "item", "entity"));
         commandCompletions.registerCompletion("holouuids", c -> HologramRegistry.getValidHologramIdentifiers());
-
+        commandCompletions.registerCompletion("holofields", c -> {
+            String selected = selectedHolo.get(c.getIssuer().getUniqueId().toString());
+            if(selected == null){
+                return List.of("No Hologram Selected!");
+            }
+            Hologram hologram = HologramRegistry.getHologram(selected);
+            if(hologram == null) {
+                return List.of("Hologram Not Found!");
+            }
+            if(hologram instanceof Editable) {
+                return ((Editable) hologram).fields();
+            }
+            return List.of("Hologram is not editable!");
+        });
+        commandCompletions.registerCompletion("holooptions", c -> {
+            String selected = selectedHolo.get(c.getIssuer().getUniqueId().toString());
+            if(selected == null){
+                return List.of("No Hologram Selected!");
+            }
+            Hologram hologram = HologramRegistry.getHologram(selected);
+            if(hologram == null) {
+                return List.of("Hologram Not Found!");
+            }
+            if(hologram instanceof Editable) {
+                return ((Editable) hologram).options(c.getContextValue(String.class));
+            }
+            return List.of("Hologram is not editable!");
+        });
         selectedHolo = new HashMap<>();
     }
 
@@ -70,6 +101,11 @@ public class HologramCommand extends BaseCommand {
             case "entity":
                 break;
             case "item":
+                ItemStack possibleItem = sender.getInventory().getItemInMainHand();
+                ItemSimpleHologram simpleHologram = new ItemSimpleHologram(
+                        possibleItem.getType().equals(Material.AIR) ? new ItemStack(Material.DIAMOND_SWORD) : possibleItem);
+                simpleHologram.spawn(sender.getEyeLocation());
+                sender.sendMessage(ComponentUtility.generateEditComponent(simpleHologram));
                 break;
             default:
                 sender.sendMessage(Component.text("Unknown hologram type.", NamedTextColor.RED));
@@ -143,7 +179,7 @@ public class HologramCommand extends BaseCommand {
     @Syntax("[field] [data]")
     @Description("Edit the hologram defined by the UUID.")
     @CommandPermission("bungosholos.edit")
-    @CommandCompletion("@nothing")
+    @CommandCompletion("@holofields @holooptions")
     public void editHologram(Player sender, @Optional String field, @Optional String... data) {
         String selected = selectedHolo.get(sender.getUniqueId().toString());
         if(selected == null){
