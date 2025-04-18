@@ -29,7 +29,6 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
     private String text;
 
     private boolean persistent;
-    private Display.Billboard billboard = Display.Billboard.FIXED;
     private Color backgroundColor;
     private TextDisplay.TextAlignment textAlignment;
 
@@ -51,7 +50,6 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
         display.setBackgroundColor(backgroundColor);
         display.setPersistent(persistent);
         display.setAlignment(textAlignment);
-        display.setBillboard(billboard);
     }
 
     @Override
@@ -74,7 +72,6 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
         backgroundColorSection.put("blue", backgroundColor.getBlue());
         section.put("background_color", backgroundColorSection);
         section.put("text_alignment", textAlignment.name());
-        section.put("billboard", billboard.name());
     }
 
     public static TextSimpleHologram deserialize(Map<String, Object> data) {
@@ -91,7 +88,6 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
                 (Integer)backgroundColorSection.get("blue")
                 ));
         hologram.setTextAlignment(TextDisplay.TextAlignment.valueOf((String) uniqueData.get("text_alignment")));
-        hologram.setBillboard(Display.Billboard.valueOf((String) uniqueData.get("billboard")));
 
         hologram.deserializeGeneric(data);
 
@@ -112,7 +108,6 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit removeline VALUE'>&bremoveline Number &e- Remove a line from the hologram
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit lines'>&blines &e- List current lines
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit bgcolor'>&bbgcolor Number Number Number Number &e- Background color of the hologram (Alpha, Red, Green, Blue)
-                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit billboard Center'>&bbillboard Vertical|Horizontal|Center|Fixed &e- How the hologram follows the player
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit textalign Center'>&btextalign Left|Right|Center|Fixed &e- How to align new text lines
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit persist'>&bpersist True|False &e- Is the hologram permanent""");
 
@@ -212,22 +207,6 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
                     editor.sendMessage(Component.text("One of your numbers is invalid!", NamedTextColor.RED));
                 }
                 break;
-            case "billboard":
-                if(values.length == 0){
-                    editor.sendMessage(Component.text("Invalid Billboard Type /holo edit to see types!", NamedTextColor.RED));
-                    break;
-                }
-                String billboardType = values[0];
-                try {
-                    Display.Billboard toChange = Display.Billboard.valueOf(billboardType.toUpperCase());
-                    this.setBillboard(toChange);
-                    this.redraw();
-                    succeeded = true;
-                    editor.sendMessage(Component.text("Set billboard type to: " + toChange.name(), NamedTextColor.YELLOW));
-                } catch(IllegalArgumentException e){
-                    editor.sendMessage(Component.text("Invalid Billboard Type /holo edit to see types!", NamedTextColor.RED));
-                }
-                break;
             case "textalign":
                 if(values.length == 0){
                     editor.sendMessage(Component.text("Invalid Text Alignment Type /holo edit to see types!", NamedTextColor.RED));
@@ -273,8 +252,6 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
             case "persist" -> List.of("True", "False");
             case "textalign" ->
                     List.of(TextDisplay.TextAlignment.LEFT.name(), TextDisplay.TextAlignment.RIGHT.name(), TextDisplay.TextAlignment.CENTER.name());
-            case "billboard" ->
-                    List.of(Display.Billboard.FIXED.name(), Display.Billboard.CENTER.name(), Display.Billboard.HORIZONTAL.name(), Display.Billboard.VERTICAL.name());
             default -> super.options(option);
         };
     }
@@ -287,7 +264,6 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
         fields.add("removeline");
         fields.add("lines");
         fields.add("bgcolor");
-        fields.add("billboard");
         fields.add("textalign");
         fields.add("persist");
         fields.addAll(super.fields());

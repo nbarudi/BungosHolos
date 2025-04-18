@@ -51,6 +51,8 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
     private T display;
     final Class<T> clazz;
 
+    protected Display.Billboard billboard;
+
     /**
      * Create a new simple hologram
      * @param clazz The Display Entity type this hologram represents
@@ -65,6 +67,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
                 new Quaternionf(0,0,0,1)
         );
         this.clazz = clazz;
+        this.billboard = Display.Billboard.FIXED;
         HologramRegistry.registerHologram(this);
     }
 
@@ -82,6 +85,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
     public void redraw() {
         if(display == null) return;
         display.setTransformation(transform);
+        display.setBillboard(billboard);
         modifyDisplay();
     }
 
@@ -132,6 +136,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
 
         map.put("location", location);
         map.put("uuid", uuid);
+        map.put("billboard", billboard.name());
         if (HologramRegistry.fetchAlias(this.getUniqueIdentifier()) != null) {
             map.put("alias", HologramRegistry.fetchAlias(this.getUniqueIdentifier()));
         }
@@ -188,6 +193,10 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
         if(alias != null) {
             HologramRegistry.defineAlias(this.getUniqueIdentifier(), alias);
         }
+
+        if (map.containsKey("billboard")) {
+            this.billboard = Display.Billboard.valueOf((String) map.get("billboard"));
+        }
     }
 
     @Override
@@ -226,6 +235,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
         this.location = location;
         display = location.getWorld().spawn(location, clazz);
         display.setTransformation(transform);
+        display.setBillboard(billboard);
         modifyDisplay();
     }
 
@@ -366,7 +376,8 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit offsetx VALUE'>&boffsetx Number &e- Offset along the local X (Adds, does not set)
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit offsety VALUE'>&boffsety Number &e- Offset along the local Y (Adds, does not set)
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit offsetz VALUE'>&boffsetz Number &e- Offset along the local Z (Adds, does not set)
-                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit setoffset x y z'>&bsetoffset Number Number Number &e- Offset to set position (Set's Offset)""");
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit setoffset x y z'>&bsetoffset Number Number Number &e- Offset to set position (Set's Offset)
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit billboard Center'>&bbillboard Vertical|Horizontal|Center|Fixed &e- How the hologram follows the player""");
             editor.sendMessage(ComponentUtility.convertToComponent(editMessage));
             return true;
         }
@@ -572,6 +583,21 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
                     editor.sendMessage(Component.text("Invalid number!", NamedTextColor.RED));
                 }
                 break;
+            case "billboard":
+                if (values.length > 0) {
+                    try {
+                        Display.Billboard toChange = Display.Billboard.valueOf(values[0].toUpperCase());
+                        this.setBillboard(toChange);
+                        this.redraw();
+                        succeeded = true;
+                        editor.sendMessage(Component.text("Set billboard type to: " + toChange.name(), NamedTextColor.YELLOW));
+                    } catch(IllegalArgumentException e){
+                        editor.sendMessage(Component.text("Invalid Billboard Type /holo edit to see types!", NamedTextColor.RED));
+                    }
+                } else {
+                    editor.sendMessage(Component.text("Invalid Billboard Type /holo edit to see types!", NamedTextColor.RED));
+                }
+                break;
         }
         return succeeded;
     }
@@ -583,6 +609,11 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
             case "yaw", "pitch", "rotatex", "rotatey", "rotatez", "offsetx", "offsety", "offsetz" ->
                     List.of("<number>");
             case "setoffset" -> List.of("<x> <y> <z>");
+            case "billboard" -> List.of(
+                    Display.Billboard.FIXED.name(), 
+                    Display.Billboard.CENTER.name(), 
+                    Display.Billboard.HORIZONTAL.name(), 
+                    Display.Billboard.VERTICAL.name());
             default -> List.of();
         };
     }
@@ -593,6 +624,6 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
                 "yaw", "pitch", "scale",
                 "size", "rotatex", "rotatey",
                 "rotatez", "offsetx", "offsety",
-                "offsetz", "setoffset");
+                "offsetz", "setoffset", "billboard");
     }
 }

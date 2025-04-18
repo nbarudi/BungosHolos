@@ -34,7 +34,6 @@ public class BungosHolos extends JavaPlugin {
     private void registerCommands() {
         commandManager = new PaperCommandManager(this);
         commandManager.enableUnstableAPI("help");
-        commandManager.enableUnstableAPI("brigadier");
 
         commandManager.registerCommand(new TestCommand());
         commandManager.registerCommand(new HologramCommand());
