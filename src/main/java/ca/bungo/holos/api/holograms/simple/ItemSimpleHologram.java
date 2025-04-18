@@ -1,8 +1,10 @@
 package ca.bungo.holos.api.holograms.simple;
 
 import ca.bungo.holos.BungosHolos;
+import ca.bungo.holos.HologramRegistry;
 import ca.bungo.holos.api.holograms.SimpleHologram;
 import ca.bungo.holos.utility.ComponentUtility;
+import io.netty.handler.codec.base64.Base64Encoder;
 import io.papermc.paper.datacomponent.DataComponentType;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -34,7 +37,7 @@ public class ItemSimpleHologram extends SimpleHologram<ItemDisplay> {
         super(ItemDisplay.class);
         this.itemStack = itemStack;
 
-        this.persistent = false;
+        this.persistent = true;
         this.displayTransform = ItemDisplay.ItemDisplayTransform.FIRSTPERSON_LEFTHAND;
     }
 
@@ -76,7 +79,26 @@ public class ItemSimpleHologram extends SimpleHologram<ItemDisplay> {
 
     @Override
     public void saveUniqueContent(Map<String, Object> map) {
+        byte[] itemData = itemStack.serializeAsBytes();
+        String encoded = Base64.getEncoder().encodeToString(itemData);
+        map.put("item", encoded);
+        map.put("persistent", persistent);
+        map.put("display_transform", displayTransform.name());
+    }
 
+    public static ItemSimpleHologram deserialize(Map<String, Object> data) {
+        Map<String, Object> uniqueData = (Map<String, Object>)data.get("unique_data");
+        String encoded = (String)uniqueData.get("item");
+        byte[] itemData = Base64.getDecoder().decode(encoded);
+        ItemSimpleHologram hologram = new ItemSimpleHologram(ItemStack.deserializeBytes(itemData));
+        HologramRegistry.unregisterHologram(hologram);
+        hologram.setPersistent((boolean)uniqueData.get("persistent"));
+        hologram.setDisplayTransform(ItemDisplay.ItemDisplayTransform.valueOf((String)uniqueData.get("display_transform")));
+        hologram.deserializeGeneric(data);
+
+        if(!BungosHolos.DISABLED) hologram.spawn(hologram.getLocation());
+
+        return hologram;
     }
 
     @Override

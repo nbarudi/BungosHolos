@@ -1,5 +1,6 @@
 package ca.bungo.holos;
 
+import ca.bungo.holos.api.holograms.simple.ItemSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.TextSimpleHologram;
 import ca.bungo.holos.commands.HologramCommand;
 import ca.bungo.holos.commands.TestCommand;
@@ -18,6 +19,7 @@ public class BungosHolos extends JavaPlugin {
     public void onEnable() {
         DISABLED = false;
         ConfigurationSerialization.registerClass(TextSimpleHologram.class);
+        ConfigurationSerialization.registerClass(ItemSimpleHologram.class);
         LOGGER = getSLF4JLogger();
 
         registerCommands();
