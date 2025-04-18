@@ -4,6 +4,7 @@ import ca.bungo.holos.BungosHolos;
 import ca.bungo.holos.HologramRegistry;
 import ca.bungo.holos.api.holograms.Editable;
 import ca.bungo.holos.api.holograms.Hologram;
+import ca.bungo.holos.api.holograms.simple.BlockSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.ItemSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.TextSimpleHologram;
 import ca.bungo.holos.utility.ComponentUtility;
@@ -91,6 +92,9 @@ public class HologramCommand extends BaseCommand {
     public void createHologram(Player sender, String type) {
         switch (type.toLowerCase()) {
             case "block":
+                BlockSimpleHologram blockHologram = new BlockSimpleHologram(Material.STONE);
+                blockHologram.spawn(sender.getEyeLocation());
+                sender.sendMessage(ComponentUtility.generateEditComponent(blockHologram));
                 break;
             case "text":
                 TextSimpleHologram hologram = new TextSimpleHologram("Hello World!");

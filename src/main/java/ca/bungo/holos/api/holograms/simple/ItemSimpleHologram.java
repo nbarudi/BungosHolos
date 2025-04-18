@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -17,6 +18,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -32,6 +34,7 @@ public class ItemSimpleHologram extends SimpleHologram<ItemDisplay> {
     private ItemStack itemStack;
     private boolean persistent;
     private ItemDisplay.ItemDisplayTransform displayTransform;
+    private Display.Billboard billboard;
 
     public ItemSimpleHologram(ItemStack itemStack) {
         super(ItemDisplay.class);
@@ -39,6 +42,7 @@ public class ItemSimpleHologram extends SimpleHologram<ItemDisplay> {
 
         this.persistent = true;
         this.displayTransform = ItemDisplay.ItemDisplayTransform.FIRSTPERSON_LEFTHAND;
+        this.billboard = Display.Billboard.FIXED;
     }
 
     @Override
@@ -46,6 +50,7 @@ public class ItemSimpleHologram extends SimpleHologram<ItemDisplay> {
         getDisplay().setItemDisplayTransform(displayTransform);
         getDisplay().setItemStack(itemStack);
         getDisplay().setPersistent(persistent);
+        getDisplay().setBillboard(billboard);
     }
 
     public void editItemMeta(Consumer<? super ItemMeta> consumer){
@@ -78,12 +83,19 @@ public class ItemSimpleHologram extends SimpleHologram<ItemDisplay> {
     public void onRemove() {}
 
     @Override
+    public void onDisable() throws IOException {
+        if(persistent)
+            super.onDisable();
+    }
+
+    @Override
     public void saveUniqueContent(Map<String, Object> map) {
         byte[] itemData = itemStack.serializeAsBytes();
         String encoded = Base64.getEncoder().encodeToString(itemData);
         map.put("item", encoded);
         map.put("persistent", persistent);
         map.put("display_transform", displayTransform.name());
+        map.put("billboard", billboard.name());
     }
 
     public static ItemSimpleHologram deserialize(Map<String, Object> data) {
@@ -94,6 +106,7 @@ public class ItemSimpleHologram extends SimpleHologram<ItemDisplay> {
         HologramRegistry.unregisterHologram(hologram);
         hologram.setPersistent((boolean)uniqueData.get("persistent"));
         hologram.setDisplayTransform(ItemDisplay.ItemDisplayTransform.valueOf((String)uniqueData.get("display_transform")));
+        hologram.setBillboard(uniqueData.containsKey("billboard") ? Display.Billboard.valueOf((String)uniqueData.get("billboard")) : Display.Billboard.FIXED);
         hologram.deserializeGeneric(data);
 
         if(!BungosHolos.DISABLED) hologram.spawn(hologram.getLocation());
@@ -111,6 +124,7 @@ public class ItemSimpleHologram extends SimpleHologram<ItemDisplay> {
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit type'>&btype String &e- Set the hologram item type
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit model'>&bmodel Number &e- Set the hologram item custom model data
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit display'>&bdisplay DisplayType &e- Set the hologram item display type
+                    <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit billboard'>&bbillboard Vertical|Horizontal|Center|Fixed &e- Set the hologram billboard type
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit persist'>&bpersist True|False &e- Is the hologram permanent""");
             
             editor.sendMessage(ComponentUtility.convertToComponent(editMessage));
@@ -164,6 +178,18 @@ public class ItemSimpleHologram extends SimpleHologram<ItemDisplay> {
                     }
                 }
                 break;
+            case "billboard":
+                if (values.length > 0) {
+                    try {
+                        this.billboard = Display.Billboard.valueOf(values[0].toUpperCase());
+                        this.redraw();
+                        editor.sendMessage(Component.text("Set billboard to: ").append(ComponentUtility.convertToComponent(values[0])));
+                        succeeded = true;
+                    } catch (IllegalArgumentException e) {
+                        editor.sendMessage(Component.text("Invalid billboard: ").append(ComponentUtility.convertToComponent(values[0])));
+                    }
+                }
+                break;
             case "persist":
                 if (values.length > 0) {
                     if (values[0].equalsIgnoreCase("true") || values[0].equalsIgnoreCase("false")) {
@@ -187,6 +213,7 @@ public class ItemSimpleHologram extends SimpleHologram<ItemDisplay> {
             case "type" -> Stream.of(Material.values()).map(Material::name).toList();
             case "model" -> List.of("<number>");
             case "display" -> Stream.of(ItemDisplay.ItemDisplayTransform.values()).map(Enum::name).toList();
+            case "billboard" -> List.of(Display.Billboard.values()).stream().map(Enum::name).toList();
             case "persist" -> List.of("true", "false");
             default -> super.options(option);
         };
@@ -200,6 +227,7 @@ public class ItemSimpleHologram extends SimpleHologram<ItemDisplay> {
         fields.add("model");
         fields.add("display");
         fields.add("persist");
+        fields.add("billboard");
         return fields;
     }
 }

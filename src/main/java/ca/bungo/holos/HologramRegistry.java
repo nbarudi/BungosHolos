@@ -28,6 +28,7 @@ public class HologramRegistry {
      * @param hologram Hologram to register
      * */
     public static void registerHologram(Hologram hologram) {
+        if(BungosHolos.DISABLED) return;
         registeredHolograms.put(hologram.getUniqueIdentifier(), hologram);
     }
 
@@ -36,6 +37,7 @@ public class HologramRegistry {
      * @param hologram Hologram to remove
      * */
     public static void unregisterHologram(Hologram hologram) {
+        if(BungosHolos.DISABLED) return;
         registeredHolograms.remove(hologram.getUniqueIdentifier());
         if(fetchAlias(hologram.getUniqueIdentifier()) != null) {
             defineAlias(hologram.getUniqueIdentifier(), null);
@@ -47,6 +49,7 @@ public class HologramRegistry {
      * @param uniqueIdentifier Identifier of the hologram to remove
      * */
     public static void unregisterHologram(String uniqueIdentifier) {
+        if(BungosHolos.DISABLED) return;
         registeredHolograms.remove(uniqueIdentifier);
         if(fetchAlias(uniqueIdentifier) != null) {
             defineAlias(uniqueIdentifier, null);
