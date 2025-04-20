@@ -43,7 +43,7 @@ public class HologramRegistry {
         if(BungosHolos.DISABLED) return;
         registeredHolograms.remove(hologram.getUniqueIdentifier());
         if(fetchAlias(hologram.getUniqueIdentifier()) != null) {
-            defineAlias(hologram.getUniqueIdentifier(), null);
+            defineAlias(hologram.getUniqueIdentifier(), null, false);
         }
     }
 
@@ -55,7 +55,7 @@ public class HologramRegistry {
         if(BungosHolos.DISABLED) return;
         registeredHolograms.remove(uniqueIdentifier);
         if(fetchAlias(uniqueIdentifier) != null) {
-            defineAlias(uniqueIdentifier, null);
+            defineAlias(uniqueIdentifier, null, false);
         }
     }
 
@@ -78,7 +78,7 @@ public class HologramRegistry {
      * @param alias Alias to define for the UUID or NULL to clear Alias for the UUID
      * @return True if the alias is created, False if the hologram does not exist or the alias is already defined.
      * */
-    public boolean defineAlias(String identifier, String alias) {
+    public boolean defineAlias(String identifier, String alias, boolean forceAlias) {
         if(alias == null){
             alias = fetchAlias(identifier);
             if(alias == null){
@@ -88,7 +88,7 @@ public class HologramRegistry {
             return true;
         }
         Hologram hologram = registeredHolograms.get(identifier); //Does the hologram exist?
-        if (hologram == null) return false; //If not, return false
+        if (hologram == null && !forceAlias) return false; //If not, return false
         if(hologramAliases.containsKey(alias)) return false; //Does this alias already exist?
         hologramAliases.put(alias, identifier); //Create the alias
         return true;

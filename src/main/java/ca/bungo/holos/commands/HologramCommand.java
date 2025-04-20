@@ -1,6 +1,7 @@
 package ca.bungo.holos.commands;
 
 import ca.bungo.holos.BungosHolos;
+import ca.bungo.holos.api.animations.Animation;
 import ca.bungo.holos.api.holograms.Animatable;
 import ca.bungo.holos.api.holograms.Editable;
 import ca.bungo.holos.api.holograms.Hologram;
@@ -212,7 +213,7 @@ public class HologramCommand extends BaseCommand {
     @CommandPermission("bungosholos.alias")
     @CommandCompletion("@holouuids @nothing")
     public void setHologramAlias(Player sender, String uuid, String alias) {
-        if(BungosHolos.get().hologramRegistry.defineAlias(uuid, alias)) {
+        if(BungosHolos.get().hologramRegistry.defineAlias(uuid, alias, false)) {
             sender.sendMessage(ComponentUtility.convertToComponent("&eDefined Alias &b" + alias + " &efor hologram &b" + uuid));
             return;
         }
@@ -325,7 +326,7 @@ public class HologramCommand extends BaseCommand {
         }
 
         animatable.loadAnimation(selectedAnimation);
-
+        animatable.playAnimation();
     }
 
 }

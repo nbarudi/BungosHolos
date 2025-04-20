@@ -1,10 +1,15 @@
 package ca.bungo.holos.registries;
 
+import ca.bungo.holos.BungosHolos;
 import ca.bungo.holos.api.animations.Animation;
+import ca.bungo.holos.api.animations.simple.BounceSimpleAnimation;
+import org.bukkit.Bukkit;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 public class AnimationRegistry {
 
@@ -12,6 +17,13 @@ public class AnimationRegistry {
 
     public AnimationRegistry() {
         animations = new HashMap<>();
+
+        //Loading base animations
+        loadBaseAnimations();
+    }
+
+    private void loadBaseAnimations(){
+        registerAnimation("bounce", new BounceSimpleAnimation(40, 1f));
     }
 
     /**
@@ -61,5 +73,24 @@ public class AnimationRegistry {
      */
     public Set<String> getRegisteredAnimations() {
         return animations.keySet();
+    }
+
+    public CompletableFuture<Animation> waitForAnimation(String animationName) {
+        CompletableFuture<Animation> future = new CompletableFuture<>();
+        if(!animations.containsKey(animationName)){
+            if(!BungosHolos.DISABLED){
+                new BukkitRunnable() {
+                    public void run() {
+                        Animation animation = getAnimation(animationName);
+                        if(animation == null) return;
+                        future.complete(animation);
+                        cancel();
+                    }
+                }.runTaskTimerAsynchronously(BungosHolos.get(), 10, 10);
+            }
+            else future.complete(null);
+        }
+        else future.complete(getAnimation(animationName));
+        return future;
     }
 }

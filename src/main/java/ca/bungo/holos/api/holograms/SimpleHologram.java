@@ -1,6 +1,7 @@
 package ca.bungo.holos.api.holograms;
 
 import ca.bungo.holos.BungosHolos;
+import ca.bungo.holos.api.animations.Animation;
 import ca.bungo.holos.utility.ComponentUtility;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -22,14 +23,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
+import org.joml.Vector2f;
 import org.joml.Vector3f;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Generic hologram type that relies on standard Text Display features.
@@ -41,7 +41,7 @@ import java.util.UUID;
  * */
 @Getter
 @Setter
-public abstract class SimpleHologram<T extends Display> implements Hologram, Editable, ConfigurationSerializable {
+public abstract class SimpleHologram<T extends Display> implements Hologram, Editable, Animatable, ConfigurationSerializable {
 
     @Setter(AccessLevel.PROTECTED)
     protected String uuid;
@@ -55,6 +55,10 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
     final Class<T> clazz;
 
     protected Display.Billboard billboard;
+
+    private BukkitTask animationTask;
+    private Animation animation;
+    private boolean paused;
 
     /**
      * Create a new simple hologram
@@ -144,6 +148,11 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
             map.put("alias", BungosHolos.get().hologramRegistry.fetchAlias(this.getUniqueIdentifier()));
         }
 
+        if(animation != null){
+            map.put("animation", animation.getName());
+            map.put("animation_data", animation);
+        }
+
         Map<String, Object> uniqueData = new HashMap<>();
         saveUniqueContent(uniqueData);
 
@@ -194,7 +203,17 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
 
         String alias = (String) map.get("alias");
         if(alias != null) {
-            BungosHolos.get().hologramRegistry.defineAlias(this.getUniqueIdentifier(), alias);
+            BungosHolos.get().hologramRegistry.defineAlias(this.getUniqueIdentifier(), alias, true);
+        }
+
+        String animationName = (String) map.get("animation");
+        if(animationName != null) {
+            BungosHolos.get().animationRegistry.waitForAnimation(animationName).thenAccept(animation -> {
+                if(animation == null) return;
+                Animation loadedAnim = (Animation) map.get("animation_data");
+                loadAnimation(loadedAnim);
+                this.playAnimation();
+            }).orTimeout(30, TimeUnit.SECONDS); //Set the animation or timeout if it takes longer then 30 seconds to fetch
         }
 
         if (map.containsKey("billboard")) {
@@ -393,11 +412,53 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit setoffset x y z'>&bsetoffset Number Number Number &e- Offset to set position (Set's Offset)
                     <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit billboard Center'>&bbillboard Vertical|Horizontal|Center|Fixed &e- How the hologram follows the player""");
             editor.sendMessage(ComponentUtility.convertToComponent(editMessage));
+            if(animation != null && animation instanceof Editable editable){
+                String extraEditMessage = ComponentUtility.format(
+                        """
+                                &cHere are animatable specific fields:
+                                <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit animation play'>&banimation play&e- Play the animation
+                                <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit animation stop'>&banimation stop&e- Stop the animation
+                                <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit animation toggle'>&banimation toggle&e- Toggle the animation"""
+                );
+                editor.sendMessage(ComponentUtility.convertToComponent(extraEditMessage));
+                return editable.onEdit(editor, null, values);
+            }
             return true;
         }
 
         boolean succeeded = false;
         switch (field.toLowerCase()){
+            case "animation":
+                if(values.length == 0){
+                    editor.sendMessage(Component.text("You must supply a value!", NamedTextColor.RED));
+                    break;
+                }
+
+                if(animation == null || !(animation instanceof Editable editable)){
+                    editor.sendMessage(Component.text("This hologram animation does not support editing!", NamedTextColor.RED));
+                    break;
+                }
+
+                String argument = values[0];
+                if(argument.equalsIgnoreCase("play")){
+                    playAnimation();
+                    succeeded = true;
+                    editor.sendMessage(Component.text("Started the animation!", NamedTextColor.YELLOW));
+                }
+                else if(argument.equalsIgnoreCase("stop")){
+                    stopAnimation();
+                    succeeded = true;
+                    editor.sendMessage(Component.text("Stopped the animation!", NamedTextColor.YELLOW));
+                }
+                else if(argument.equalsIgnoreCase("toggle")){
+                    toggleAnimation();
+                    succeeded = true;
+                    editor.sendMessage(Component.text("Toggled the animation!", NamedTextColor.YELLOW));
+                }
+                else {
+                    succeeded = editable.onEdit(editor, argument, Arrays.copyOfRange(values, 1, values.length));
+                }
+                break;
             case "scale":
                 if(values.length == 1){
                     try {
@@ -618,7 +679,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
 
     @Override
     public List<String> options(String option) {
-        return switch (option.toLowerCase()) {
+        List<String> options = new ArrayList<>(switch (option.toLowerCase()) {
             case "scale", "size" -> List.of("<number>", "<x> <y> <z>");
             case "yaw", "pitch", "rotatex", "rotatey", "rotatez", "offsetx", "offsety", "offsetz" ->
                     List.of("<number>");
@@ -628,8 +689,22 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
                     Display.Billboard.CENTER.name(), 
                     Display.Billboard.HORIZONTAL.name(), 
                     Display.Billboard.VERTICAL.name());
-            default -> List.of();
-        };
+            case "animation" -> {
+                if(animation != null && animation instanceof Editable editable){
+                    List<String> editableOptions = new ArrayList<>(editable.fields());
+                    editableOptions.add("toggle");
+                    editableOptions.add("stop");
+                    editableOptions.add("play");
+                    editableOptions.add("remove");
+                    yield editableOptions;
+                }
+                yield List.of("");
+            }
+            default -> new ArrayList<String>();
+        });
+
+
+        return options;
     }
 
     @Override
@@ -638,7 +713,60 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
                 "yaw", "pitch", "scale",
                 "size", "rotatex", "rotatey",
                 "rotatez", "offsetx", "offsety",
-                "offsetz", "setoffset", "billboard");
+                "offsetz", "setoffset", "billboard", "animation");
     }
 
+    @Override
+    public void loadAnimation(Animation animation) {
+        this.animation = animation.clone();
+    }
+
+    @Override
+    public Animation getAnimation() {
+        return this.animation;
+    }
+
+    @Override
+    public void playAnimation() {
+        if(animation == null) return;
+        if(animationTask != null) stopAnimation();
+
+        animationTask = new BukkitRunnable() {
+            private int progress = 0;
+
+            public void run() {
+                if(progress >= animation.getTickTime() && animation.isLoopable()) progress = 0;
+                if(paused) return;
+
+                Vector3f offset = animation.getPositionOffset(progress);
+                Vector2f rotation = animation.getRotationOffset(progress);
+                Location newLocation = getLocation().clone().add(new Vector(offset.x, offset.y, offset.z));
+                newLocation.setYaw(newLocation.getYaw() + rotation.x);
+                newLocation.setPitch(newLocation.getPitch() + rotation.y);
+
+                teleport(newLocation, false);
+
+                progress++;
+            }
+        }.runTaskTimer(BungosHolos.get(), 1, 1);
+    }
+
+    @Override
+    public void stopAnimation() {
+        if(animation != null) {
+            animationTask.cancel();
+            animationTask = null;
+            teleport(getLocation(), false);
+        }
+    }
+
+    @Override
+    public void toggleAnimation() {
+        paused = !paused;
+    }
+
+    @Override
+    public boolean isPlaying() {
+        return !paused;
+    }
 }
