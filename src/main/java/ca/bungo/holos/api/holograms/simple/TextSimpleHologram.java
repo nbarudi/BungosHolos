@@ -1,7 +1,6 @@
 package ca.bungo.holos.api.holograms.simple;
 
 import ca.bungo.holos.BungosHolos;
-import ca.bungo.holos.HologramRegistry;
 import ca.bungo.holos.api.holograms.SimpleHologram;
 import ca.bungo.holos.utility.ComponentUtility;
 import lombok.Getter;
@@ -10,7 +9,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Color;
-import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.jetbrains.annotations.NotNull;
@@ -78,7 +76,7 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
         Map<String, Object> uniqueData = (Map<String, Object>)data.get("unique_data");
 
         TextSimpleHologram hologram = new TextSimpleHologram((String) uniqueData.get("text"));
-        HologramRegistry.unregisterHologram(hologram);
+        BungosHolos.get().hologramRegistry.unregisterHologram(hologram);
         hologram.setPersistent((boolean) uniqueData.get("persistent"));
         Map<String, Object> backgroundColorSection = (Map<String, Object>)uniqueData.get("background_color");
         hologram.setBackgroundColor(Color.fromARGB(

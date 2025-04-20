@@ -5,6 +5,8 @@ import ca.bungo.holos.api.holograms.simple.ItemSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.TextSimpleHologram;
 import ca.bungo.holos.commands.HologramCommand;
 import ca.bungo.holos.commands.TestCommand;
+import ca.bungo.holos.registries.AnimationRegistry;
+import ca.bungo.holos.registries.HologramRegistry;
 import co.aikar.commands.PaperCommandManager;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -16,19 +18,28 @@ public class BungosHolos extends JavaPlugin {
     public static PaperCommandManager commandManager;
     public static boolean DISABLED = false;
 
+    private static BungosHolos instance;
+
+    public HologramRegistry hologramRegistry = new HologramRegistry();
+    public AnimationRegistry animationRegistry = new AnimationRegistry();
+
     @Override
     public void onEnable() {
+        instance = this;
+
         DISABLED = false;
+
         ConfigurationSerialization.registerClass(TextSimpleHologram.class);
         ConfigurationSerialization.registerClass(ItemSimpleHologram.class);
         ConfigurationSerialization.registerClass(BlockSimpleHologram.class);
+
         LOGGER = getSLF4JLogger();
 
         registerCommands();
 
         saveDefaultConfig();
 
-        HologramRegistry.onServerEnable();
+        hologramRegistry.onServerEnable();
     }
 
     private void registerCommands() {
@@ -42,6 +53,10 @@ public class BungosHolos extends JavaPlugin {
     @Override
     public void onDisable() {
         DISABLED = true;
-        HologramRegistry.onServerDisable();
+        hologramRegistry.onServerDisable();
+    }
+
+    public static BungosHolos get() {
+        return instance;
     }
 }

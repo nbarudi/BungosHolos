@@ -1,12 +1,11 @@
-package ca.bungo.holos;
+package ca.bungo.holos.registries;
 
 
+import ca.bungo.holos.BungosHolos;
 import ca.bungo.holos.api.holograms.Hologram;
 import lombok.Getter;
-import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Entity;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.annotation.Nullable;
@@ -14,12 +13,16 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+@Getter
 public class HologramRegistry {
 
-    @Getter
-    private static final Map<String, Hologram> registeredHolograms = new HashMap<>();
-    @Getter
-    private static final Map<String, String> hologramAliases = new HashMap<>();
+    private final Map<String, Hologram> registeredHolograms;
+    private final Map<String, String> hologramAliases;
+
+    public HologramRegistry() {
+        this.registeredHolograms = new HashMap<>();
+        this.hologramAliases = new HashMap<>();
+    }
 
     /**
      * Register a new hologram for event handling.
@@ -27,7 +30,7 @@ public class HologramRegistry {
      * Generally should be handled automatically by the hologram its self
      * @param hologram Hologram to register
      * */
-    public static void registerHologram(Hologram hologram) {
+    public void registerHologram(Hologram hologram) {
         if(BungosHolos.DISABLED) return;
         registeredHolograms.put(hologram.getUniqueIdentifier(), hologram);
     }
@@ -36,7 +39,7 @@ public class HologramRegistry {
      * Remove a hologram from the registry
      * @param hologram Hologram to remove
      * */
-    public static void unregisterHologram(Hologram hologram) {
+    public void unregisterHologram(Hologram hologram) {
         if(BungosHolos.DISABLED) return;
         registeredHolograms.remove(hologram.getUniqueIdentifier());
         if(fetchAlias(hologram.getUniqueIdentifier()) != null) {
@@ -48,7 +51,7 @@ public class HologramRegistry {
      * Remove a hologram from the registry
      * @param uniqueIdentifier Identifier of the hologram to remove
      * */
-    public static void unregisterHologram(String uniqueIdentifier) {
+    public void unregisterHologram(String uniqueIdentifier) {
         if(BungosHolos.DISABLED) return;
         registeredHolograms.remove(uniqueIdentifier);
         if(fetchAlias(uniqueIdentifier) != null) {
@@ -61,7 +64,7 @@ public class HologramRegistry {
      * @param identifier Identifier of the hologram to fetch
      * @return Hologram or NULL
      * */
-    public static @Nullable Hologram getHologram(String identifier) {
+    public @Nullable Hologram getHologram(String identifier) {
         Hologram hologram = registeredHolograms.get(identifier);
         if (hologram == null) {
             hologram = registeredHolograms.get(hologramAliases.get(identifier));
@@ -75,7 +78,7 @@ public class HologramRegistry {
      * @param alias Alias to define for the UUID or NULL to clear Alias for the UUID
      * @return True if the alias is created, False if the hologram does not exist or the alias is already defined.
      * */
-    public static boolean defineAlias(String identifier, String alias) {
+    public boolean defineAlias(String identifier, String alias) {
         if(alias == null){
             alias = fetchAlias(identifier);
             if(alias == null){
@@ -96,7 +99,7 @@ public class HologramRegistry {
      * @param identifier - UUID to find the alias of
      * @return The alias of the Hologram or NULL of none exists
      * */
-    public static String fetchAlias(String identifier) {
+    public String fetchAlias(String identifier) {
         for (Map.Entry<String, String> entry : hologramAliases.entrySet()) {
             if(identifier.equals(entry.getValue())) {
                 return entry.getKey();
@@ -109,7 +112,7 @@ public class HologramRegistry {
      * Event triggered when the server is shutting down.
      * Generally handled by the plugin its self and should not need third party triggers
      * */
-    public static void onServerDisable(){
+    public void onServerDisable(){
         for(Hologram hologram : registeredHolograms.values()) {
             try {
                 hologram.onDisable();
@@ -145,7 +148,7 @@ public class HologramRegistry {
      * Used to load any persistent holograms into the plugins record
      * to make them editable via the plugin commands
      * */
-    public static void onServerEnable(){
+    public void onServerEnable(){
         File file = new File(JavaPlugin.getProvidingPlugin(HologramRegistry.class).getDataFolder(), "holograms.yml");
         if(!file.exists()) return; //If no file that means no holograms to load.
         YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
@@ -167,7 +170,7 @@ public class HologramRegistry {
      * Get all hologram UUIDs and all Hologram Aliases
      * @return A Set of all valid hologram identifiers
      * */
-    public static Set<String> getValidHologramIdentifiers(){
+    public Set<String> getValidHologramIdentifiers(){
         Set<String> validIdentifiers = new HashSet<>();
         validIdentifiers.addAll(registeredHolograms.keySet());
         validIdentifiers.addAll(hologramAliases.keySet());

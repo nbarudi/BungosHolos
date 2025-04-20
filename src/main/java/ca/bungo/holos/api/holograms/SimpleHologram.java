@@ -1,6 +1,6 @@
 package ca.bungo.holos.api.holograms;
 
-import ca.bungo.holos.HologramRegistry;
+import ca.bungo.holos.BungosHolos;
 import ca.bungo.holos.utility.ComponentUtility;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -14,7 +14,10 @@ import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Transformation;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.AxisAngle4f;
@@ -68,7 +71,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
         );
         this.clazz = clazz;
         this.billboard = Display.Billboard.FIXED;
-        HologramRegistry.registerHologram(this);
+        BungosHolos.get().hologramRegistry.registerHologram(this);
     }
 
     /**
@@ -137,8 +140,8 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
         map.put("location", location);
         map.put("uuid", uuid);
         map.put("billboard", billboard.name());
-        if (HologramRegistry.fetchAlias(this.getUniqueIdentifier()) != null) {
-            map.put("alias", HologramRegistry.fetchAlias(this.getUniqueIdentifier()));
+        if (BungosHolos.get().hologramRegistry.fetchAlias(this.getUniqueIdentifier()) != null) {
+            map.put("alias", BungosHolos.get().hologramRegistry.fetchAlias(this.getUniqueIdentifier()));
         }
 
         Map<String, Object> uniqueData = new HashMap<>();
@@ -191,7 +194,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
 
         String alias = (String) map.get("alias");
         if(alias != null) {
-            HologramRegistry.defineAlias(this.getUniqueIdentifier(), alias);
+            BungosHolos.get().hologramRegistry.defineAlias(this.getUniqueIdentifier(), alias);
         }
 
         if (map.containsKey("billboard")) {
@@ -246,7 +249,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
         display.remove();
         display = null;
         //Might as well unregister myself if im being removed
-        HologramRegistry.unregisterHologram(this);
+        BungosHolos.get().hologramRegistry.unregisterHologram(this);
         onRemove();
     }
 
@@ -256,6 +259,17 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
      * */
     public void teleport(Location location) {
         this.location = location;
+        if(display == null) return;
+        display.teleport(location);
+    }
+
+    /**
+     * Teleport the hologram to supplied location
+     * @param location Where to teleport to
+     * @param updateLocation Should we update the holograms base location
+     * */
+    public void teleport(Location location, boolean updateLocation) {
+        if(updateLocation) this.location = location;
         if(display == null) return;
         display.teleport(location);
     }
@@ -626,4 +640,5 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
                 "rotatez", "offsetx", "offsety",
                 "offsetz", "setoffset", "billboard");
     }
+
 }

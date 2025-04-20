@@ -1,7 +1,6 @@
 package ca.bungo.holos.api.holograms.simple;
 
 import ca.bungo.holos.BungosHolos;
-import ca.bungo.holos.HologramRegistry;
 import ca.bungo.holos.api.holograms.SimpleHologram;
 import ca.bungo.holos.utility.ComponentUtility;
 import lombok.Getter;
@@ -10,7 +9,6 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.BlockDisplay;
-import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -18,7 +16,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -68,7 +65,7 @@ public class BlockSimpleHologram extends SimpleHologram<BlockDisplay> {
         BlockData blockData = org.bukkit.Bukkit.createBlockData(blockDataString);
 
         BlockSimpleHologram hologram = new BlockSimpleHologram(blockData);
-        HologramRegistry.unregisterHologram(hologram);
+        BungosHolos.get().hologramRegistry.unregisterHologram(hologram);
         hologram.setPersistent((boolean)uniqueData.get("persistent"));
 
         hologram.deserializeGeneric(data);

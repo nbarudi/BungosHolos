@@ -1,16 +1,13 @@
 package ca.bungo.holos.api.holograms.simple;
 
 import ca.bungo.holos.BungosHolos;
-import ca.bungo.holos.HologramRegistry;
 import ca.bungo.holos.api.holograms.SimpleHologram;
 import ca.bungo.holos.utility.ComponentUtility;
-import io.netty.handler.codec.base64.Base64Encoder;
 import io.papermc.paper.datacomponent.DataComponentType;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
-import org.bukkit.entity.Display;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -99,7 +96,7 @@ public class ItemSimpleHologram extends SimpleHologram<ItemDisplay> {
         String encoded = (String)uniqueData.get("item");
         byte[] itemData = Base64.getDecoder().decode(encoded);
         ItemSimpleHologram hologram = new ItemSimpleHologram(ItemStack.deserializeBytes(itemData));
-        HologramRegistry.unregisterHologram(hologram);
+        BungosHolos.get().hologramRegistry.unregisterHologram(hologram);
         hologram.setPersistent((boolean)uniqueData.get("persistent"));
         hologram.setDisplayTransform(ItemDisplay.ItemDisplayTransform.valueOf((String)uniqueData.get("display_transform")));
         hologram.deserializeGeneric(data);

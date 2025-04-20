@@ -1,7 +1,7 @@
 package ca.bungo.holos.commands;
 
 import ca.bungo.holos.BungosHolos;
-import ca.bungo.holos.HologramRegistry;
+import ca.bungo.holos.api.holograms.Animatable;
 import ca.bungo.holos.api.holograms.Editable;
 import ca.bungo.holos.api.holograms.Hologram;
 import ca.bungo.holos.api.holograms.simple.BlockSimpleHologram;
@@ -19,7 +19,6 @@ import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,14 +31,15 @@ public class HologramCommand extends BaseCommand {
 
     public HologramCommand(){
         CommandCompletions<BukkitCommandCompletionContext> commandCompletions = BungosHolos.commandManager.getCommandCompletions();
+        commandCompletions.registerCompletion("animtypes", c -> BungosHolos.get().animationRegistry.getRegisteredAnimations());
         commandCompletions.registerCompletion("holotypes", c -> List.of("text", "block", "item", "entity"));
-        commandCompletions.registerCompletion("holouuids", c -> HologramRegistry.getValidHologramIdentifiers());
+        commandCompletions.registerCompletion("holouuids", c -> BungosHolos.get().hologramRegistry.getValidHologramIdentifiers());
         commandCompletions.registerCompletion("holofields", c -> {
             String selected = selectedHolo.get(c.getIssuer().getUniqueId().toString());
             if(selected == null){
                 return List.of("No Hologram Selected!");
             }
-            Hologram hologram = HologramRegistry.getHologram(selected);
+            Hologram hologram = BungosHolos.get().hologramRegistry.getHologram(selected);
             if(hologram == null) {
                 return List.of("Hologram Not Found!");
             }
@@ -53,7 +53,7 @@ public class HologramCommand extends BaseCommand {
             if(selected == null){
                 return List.of("No Hologram Selected!");
             }
-            Hologram hologram = HologramRegistry.getHologram(selected);
+            Hologram hologram = BungosHolos.get().hologramRegistry.getHologram(selected);
             if(hologram == null) {
                 return List.of("Hologram Not Found!");
             }
@@ -128,23 +128,23 @@ public class HologramCommand extends BaseCommand {
                 sender.sendMessage(Component.text("No hologram selected and no identifier supplied", NamedTextColor.RED));
                 return;
             }
-            Hologram hologram = HologramRegistry.getHologram(selected);
+            Hologram hologram = BungosHolos.get().hologramRegistry.getHologram(selected);
             if(hologram == null){
                 sender.sendMessage(Component.text("Hologram not found!", NamedTextColor.RED));
                 return;
             }
-            HologramRegistry.unregisterHologram(hologram);
+            BungosHolos.get().hologramRegistry.unregisterHologram(hologram);
             hologram.remove();
             selectedHolo.remove(selected);
             sender.sendMessage(Component.text("Hologram deleted", NamedTextColor.YELLOW));
         }
         else {
-            Hologram hologram = HologramRegistry.getHologram(uuid);
+            Hologram hologram = BungosHolos.get().hologramRegistry.getHologram(uuid);
             if(hologram == null){
                 sender.sendMessage(Component.text("Hologram not found!", NamedTextColor.RED));
                 return;
             }
-            HologramRegistry.unregisterHologram(hologram);
+            BungosHolos.get().hologramRegistry.unregisterHologram(hologram);
             hologram.remove();
             selectedHolo.remove(uuid);
             sender.sendMessage(Component.text("Hologram deleted", NamedTextColor.YELLOW));
@@ -167,7 +167,7 @@ public class HologramCommand extends BaseCommand {
             }
             return;
         }
-        Hologram hologram = HologramRegistry.getHologram(identifier);
+        Hologram hologram = BungosHolos.get().hologramRegistry.getHologram(identifier);
         if(hologram == null) {
             player.sendMessage(Component.text("Hologram not found.", NamedTextColor.RED));
             return;
@@ -190,7 +190,7 @@ public class HologramCommand extends BaseCommand {
             sender.sendMessage(Component.text("You do not have a hologram selected!.", NamedTextColor.RED));
             sender.sendMessage(Component.text("/holo select IDENTIFIER.", NamedTextColor.YELLOW));
         }
-        Hologram hologram = HologramRegistry.getHologram(selected);
+        Hologram hologram = BungosHolos.get().hologramRegistry.getHologram(selected);
         if(hologram == null) {
             sender.sendMessage(Component.text("Hologram not found.", NamedTextColor.RED));
             return;
@@ -212,7 +212,7 @@ public class HologramCommand extends BaseCommand {
     @CommandPermission("bungosholos.alias")
     @CommandCompletion("@holouuids @nothing")
     public void setHologramAlias(Player sender, String uuid, String alias) {
-        if(HologramRegistry.defineAlias(uuid, alias)) {
+        if(BungosHolos.get().hologramRegistry.defineAlias(uuid, alias)) {
             sender.sendMessage(ComponentUtility.convertToComponent("&eDefined Alias &b" + alias + " &efor hologram &b" + uuid));
             return;
         }
@@ -224,12 +224,12 @@ public class HologramCommand extends BaseCommand {
     @CommandPermission("bungosholos.list")
     public void listHolograms(Player sender) {
         Map<String, String> uuidToAlias = new HashMap<>();
-        for(Map.Entry<String, String> entry : HologramRegistry.getHologramAliases().entrySet()) {
+        for(Map.Entry<String, String> entry : BungosHolos.get().hologramRegistry.getHologramAliases().entrySet()) {
             uuidToAlias.put(entry.getValue(), entry.getKey());
         }
 
         StringBuilder hologramList = new StringBuilder("&eHere are currently registered Holograms:\n");
-        for(String uuid : HologramRegistry.getRegisteredHolograms().keySet()) {
+        for(String uuid : BungosHolos.get().hologramRegistry.getRegisteredHolograms().keySet()) {
             if(uuidToAlias.containsKey(uuid)) {
                 hologramList.append("&e- &9").append(uuidToAlias.remove(uuid)).append("&7(").append(uuid).append(")\n");
             }
@@ -252,7 +252,7 @@ public class HologramCommand extends BaseCommand {
             return;
         }
 
-        Hologram hologram = HologramRegistry.getHologram(selected);
+        Hologram hologram = BungosHolos.get().hologramRegistry.getHologram(selected);
         if(hologram == null) {
             sender.sendMessage(Component.text("Hologram not found.", NamedTextColor.RED));
             return;
@@ -287,13 +287,45 @@ public class HologramCommand extends BaseCommand {
             return;
         }
 
-        Hologram hologram = HologramRegistry.getHologram(selected);
+        Hologram hologram = BungosHolos.get().hologramRegistry.getHologram(selected);
         if(hologram == null) {
             sender.sendMessage(Component.text("Hologram not found.", NamedTextColor.RED));
             return;
         }
         sender.teleport(hologram.getLocation());
         sender.sendMessage(Component.text("Teleported you to the hologram!", NamedTextColor.YELLOW));
+    }
+
+    @Subcommand("animate")
+    @Description("Set selected holograms animation to supplied animation")
+    @Syntax("[animation]")
+    @CommandCompletion("@animtypes")
+    @CommandPermission("bungosholos.animate")
+    public void animateHologram(Player sender, String animationName) {
+        String selected = selectedHolo.get(sender.getUniqueId().toString());
+        if(selected == null){
+            sender.sendMessage(Component.text("You do not have a hologram selected!", NamedTextColor.RED));
+            return;
+        }
+
+        Hologram hologram = BungosHolos.get().hologramRegistry.getHologram(selected);
+        if(hologram == null) {
+            sender.sendMessage(Component.text("Hologram not found.", NamedTextColor.RED));
+            return;
+        }
+
+        if(!(hologram instanceof Animatable animatable)) {
+            sender.sendMessage(Component.text("Hologram is not animatable.", NamedTextColor.RED));
+            return;
+        }
+
+        Animation selectedAnimation = BungosHolos.get().animationRegistry.getAnimation(animationName);
+        if(selectedAnimation == null) {
+            sender.sendMessage(Component.text("Animation not found.", NamedTextColor.RED));
+        }
+
+        animatable.loadAnimation(selectedAnimation);
+
     }
 
 }
