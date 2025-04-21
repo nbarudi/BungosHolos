@@ -3,7 +3,8 @@ package ca.bungo.holos.registries;
 import ca.bungo.holos.BungosHolos;
 import ca.bungo.holos.api.animations.Animation;
 import ca.bungo.holos.api.animations.simple.BounceSimpleAnimation;
-import org.bukkit.Bukkit;
+import ca.bungo.holos.api.animations.simple.HorizontalSimpleAnimation;
+import ca.bungo.holos.api.animations.simple.VerticalSimpleAnimation;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.HashMap;
@@ -24,6 +25,8 @@ public class AnimationRegistry {
 
     private void loadBaseAnimations(){
         registerAnimation("bounce", new BounceSimpleAnimation(40, 1f));
+        registerAnimation("horizontal", new HorizontalSimpleAnimation(40, 1f));
+        registerAnimation("vertical", new VerticalSimpleAnimation(40, 1f));
     }
 
     /**

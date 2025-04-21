@@ -1,6 +1,8 @@
 package ca.bungo.holos;
 
 import ca.bungo.holos.api.animations.simple.BounceSimpleAnimation;
+import ca.bungo.holos.api.animations.simple.HorizontalSimpleAnimation;
+import ca.bungo.holos.api.animations.simple.VerticalSimpleAnimation;
 import ca.bungo.holos.api.holograms.simple.BlockSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.ItemSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.TextSimpleHologram;
@@ -37,7 +39,8 @@ public class BungosHolos extends JavaPlugin {
 
         //Registering Animations
         ConfigurationSerialization.registerClass(BounceSimpleAnimation.class);
-
+        ConfigurationSerialization.registerClass(VerticalSimpleAnimation.class);
+        ConfigurationSerialization.registerClass(HorizontalSimpleAnimation.class);
 
         LOGGER = getSLF4JLogger();
 
