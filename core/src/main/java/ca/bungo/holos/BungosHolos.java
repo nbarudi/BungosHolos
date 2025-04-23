@@ -1,5 +1,7 @@
 package ca.bungo.holos;
 
+import ca.bungo.holos.abstracted.PacketHelper;
+import ca.bungo.holos.abstracted.PacketService;
 import ca.bungo.holos.api.animations.simple.BounceSimpleAnimation;
 import ca.bungo.holos.api.animations.simple.HorizontalSimpleAnimation;
 import ca.bungo.holos.api.animations.simple.VerticalSimpleAnimation;
@@ -10,10 +12,15 @@ import ca.bungo.holos.commands.HologramCommand;
 import ca.bungo.holos.commands.TestCommand;
 import ca.bungo.holos.registries.AnimationRegistry;
 import ca.bungo.holos.registries.HologramRegistry;
+import ca.bungo.holos.utility.ComponentUtility;
 import co.aikar.commands.PaperCommandManager;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.slf4j.Logger;
+
+import java.lang.reflect.InvocationTargetException;
 
 public class BungosHolos extends JavaPlugin {
 
@@ -25,11 +32,11 @@ public class BungosHolos extends JavaPlugin {
 
     public HologramRegistry hologramRegistry = new HologramRegistry();
     public AnimationRegistry animationRegistry = new AnimationRegistry();
+    public PacketService packetService;
 
     @Override
     public void onEnable() {
         instance = this;
-
         DISABLED = false;
 
         //Registering Holograms
@@ -44,6 +51,8 @@ public class BungosHolos extends JavaPlugin {
 
         LOGGER = getSLF4JLogger();
 
+        loadPacketService();
+
         registerCommands();
 
         saveDefaultConfig();
@@ -57,6 +66,28 @@ public class BungosHolos extends JavaPlugin {
 
         commandManager.registerCommand(new TestCommand());
         commandManager.registerCommand(new HologramCommand());
+    }
+
+    private void loadPacketService() {
+        String version = Bukkit.getServer().getMinecraftVersion();
+
+        PacketHelper helper = () -> instance;
+        String packageString = "ca.bungo.holos.abstracted.v{}.VersionedPacketService";
+        switch (version) {
+            case "1.21.1":
+            case "1.21.3":
+            case "1.21.4":
+                try {
+                    Class<?> handler = Class.forName(ComponentUtility.format(packageString, "1_21_R1"));
+                    this.packetService = (PacketService) handler.getConstructor(PacketHelper.class).newInstance(helper);
+                } catch(ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException |
+                        InvocationTargetException e){
+                    LOGGER.error("Failed to load packet service for {}!", version, e);
+                }
+                break;
+        }
+
+        LOGGER.info("BungosHolos PacketService Loaded: {}", packetService.getVersion());
     }
 
     @Override
