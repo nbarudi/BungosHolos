@@ -1,5 +1,10 @@
 name: BungosHolos
 version: 1.0.0
 main: ca.bungo.holos.BungosHolos
-api-version: 1.21
+api-version: "1.21"
 author: Bungo
+dependencies:
+  server:
+    PlaceholderAPI:
+      required: false
+      load: BEFORE

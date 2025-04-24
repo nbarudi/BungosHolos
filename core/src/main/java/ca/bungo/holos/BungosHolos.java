@@ -12,6 +12,7 @@ import ca.bungo.holos.commands.HologramCommand;
 import ca.bungo.holos.commands.TestCommand;
 import ca.bungo.holos.handlers.PlaceholderHandler;
 import ca.bungo.holos.handlers.placeholder.GenericPlaceholders;
+import ca.bungo.holos.handlers.placeholder.PAPIPlaceholders;
 import ca.bungo.holos.registries.AnimationRegistry;
 import ca.bungo.holos.registries.HologramRegistry;
 import ca.bungo.holos.utility.ComponentUtility;
@@ -63,10 +64,14 @@ public class BungosHolos extends JavaPlugin {
         hologramRegistry.onServerEnable();
 
         if(Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")){
-           LOGGER.info("You foolish fool of fools. you havent actually implemented the placeholder handler yet.");
+           placeholderHandler = new PAPIPlaceholders();
+           LOGGER.info("Running PlaceholderAPI Placeholder Handler.");
         }
         else if(Bukkit.getPluginManager().isPluginEnabled("MiniPlaceholders")){
             LOGGER.info("You foolish fool of fools. you havent actually implemented the placeholder handler yet.");
+        }
+        else {
+            LOGGER.info("Running Generic Placeholder Handler.");
         }
     }
 
