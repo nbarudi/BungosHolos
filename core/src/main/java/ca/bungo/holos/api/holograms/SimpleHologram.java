@@ -280,6 +280,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
         this.location = location;
         if(display == null) return;
         display.teleport(location);
+        modifyDisplay(); //Update it just in case something strange happened
     }
 
     /**
@@ -291,6 +292,7 @@ public abstract class SimpleHologram<T extends Display> implements Hologram, Edi
         if(updateLocation) this.location = location;
         if(display == null) return;
         display.teleport(location);
+        modifyDisplay(); //Update it just in case something strange happened
     }
 
     /**

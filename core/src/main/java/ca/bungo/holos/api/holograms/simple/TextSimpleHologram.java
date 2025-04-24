@@ -1,6 +1,7 @@
 package ca.bungo.holos.api.holograms.simple;
 
 import ca.bungo.holos.BungosHolos;
+import ca.bungo.holos.api.holograms.Packetable;
 import ca.bungo.holos.api.holograms.SimpleHologram;
 import ca.bungo.holos.utility.ComponentUtility;
 import lombok.Getter;
@@ -8,6 +9,7 @@ import lombok.Setter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
@@ -22,9 +24,11 @@ import java.util.Map;
 
 @Getter
 @Setter
-public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
+public class TextSimpleHologram extends SimpleHologram<TextDisplay> implements Packetable {
 
     private String text;
+
+    private boolean packeted;
 
     private boolean persistent;
     private Color backgroundColor;
@@ -38,16 +42,34 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
         this.persistent = true;
         this.backgroundColor = Color.fromARGB(0,0,0,0);
         this.textAlignment = TextDisplay.TextAlignment.CENTER;
+
+        this.packeted = false;
     }
 
     @Override
     protected void modifyDisplay() {
         TextDisplay display = this.getDisplay();
-        display.setLineWidth(10000);
         display.text(ComponentUtility.convertToComponent(text));
-        display.setBackgroundColor(backgroundColor);
-        display.setPersistent(persistent);
-        display.setAlignment(textAlignment);
+        if(BungosHolos.get().placeholderHandler.hasPlaceholder(text)){
+            setPacketed(true);
+            for(Player player : Bukkit.getOnlinePlayers()) {
+                display = (TextDisplay) display.copy();
+                display.setLineWidth(10000);
+                display.text(ComponentUtility.convertToComponent(BungosHolos.get().placeholderHandler.handlePlaceholder(text, player)));
+                display.setBackgroundColor(backgroundColor);
+                display.setPersistent(persistent);
+                display.setAlignment(textAlignment);
+                BungosHolos.get().packetService.updateEntityData(player, this.getDisplay().getEntityId(), display);
+            }
+        }
+        else {
+            setPacketed(false);
+            display.setLineWidth(10000);
+            display.setBackgroundColor(backgroundColor);
+            display.setPersistent(persistent);
+            display.setAlignment(textAlignment);
+        }
+
     }
 
     @Override
@@ -267,4 +289,16 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> {
         fields.addAll(super.fields());
         return fields;
     }
+
+    @Override
+    public void updateAll() {
+        modifyDisplay();
+    }
+
+    @Override
+    public void updatePlayer(Player player) {
+        modifyDisplay();
+    }
+
+
 }

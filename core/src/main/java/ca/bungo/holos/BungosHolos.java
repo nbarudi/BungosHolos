@@ -10,13 +10,14 @@ import ca.bungo.holos.api.holograms.simple.ItemSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.TextSimpleHologram;
 import ca.bungo.holos.commands.HologramCommand;
 import ca.bungo.holos.commands.TestCommand;
+import ca.bungo.holos.handlers.PlaceholderHandler;
+import ca.bungo.holos.handlers.placeholder.GenericPlaceholders;
 import ca.bungo.holos.registries.AnimationRegistry;
 import ca.bungo.holos.registries.HologramRegistry;
 import ca.bungo.holos.utility.ComponentUtility;
 import co.aikar.commands.PaperCommandManager;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.slf4j.Logger;
 
@@ -33,6 +34,7 @@ public class BungosHolos extends JavaPlugin {
     public HologramRegistry hologramRegistry = new HologramRegistry();
     public AnimationRegistry animationRegistry = new AnimationRegistry();
     public PacketService packetService;
+    public PlaceholderHandler placeholderHandler = new GenericPlaceholders();
 
     @Override
     public void onEnable() {
@@ -54,10 +56,18 @@ public class BungosHolos extends JavaPlugin {
         loadPacketService();
 
         registerCommands();
+        registerEvents();
 
         saveDefaultConfig();
 
         hologramRegistry.onServerEnable();
+
+        if(Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")){
+           LOGGER.info("You foolish fool of fools. you havent actually implemented the placeholder handler yet.");
+        }
+        else if(Bukkit.getPluginManager().isPluginEnabled("MiniPlaceholders")){
+            LOGGER.info("You foolish fool of fools. you havent actually implemented the placeholder handler yet.");
+        }
     }
 
     private void registerCommands() {
@@ -66,6 +76,9 @@ public class BungosHolos extends JavaPlugin {
 
         commandManager.registerCommand(new TestCommand());
         commandManager.registerCommand(new HologramCommand());
+    }
+
+    private void registerEvents() {
     }
 
     private void loadPacketService() {

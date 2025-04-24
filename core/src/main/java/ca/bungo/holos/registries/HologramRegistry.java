@@ -3,10 +3,15 @@ package ca.bungo.holos.registries;
 
 import ca.bungo.holos.BungosHolos;
 import ca.bungo.holos.api.holograms.Hologram;
+import ca.bungo.holos.api.holograms.Packetable;
 import lombok.Getter;
+import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -22,6 +27,22 @@ public class HologramRegistry {
     public HologramRegistry() {
         this.registeredHolograms = new HashMap<>();
         this.hologramAliases = new HashMap<>();
+    }
+
+    /**
+     * Handle packeted holograms ticking
+     * */
+    private void startPacketRunner() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for(Hologram hologram : registeredHolograms.values()) {
+                    if(hologram instanceof Packetable packetable){
+                        packetable.globalTickUpdate();
+                    }
+                }
+            }
+        }.runTaskTimer(BungosHolos.get(), 10, 10);
     }
 
     /**
@@ -164,6 +185,8 @@ public class HologramRegistry {
                 BungosHolos.LOGGER.warn("Failed to load hologram {}", uuid, e);
             }
         }
+
+        startPacketRunner();
     }
 
     /**
@@ -175,6 +198,38 @@ public class HologramRegistry {
         validIdentifiers.addAll(registeredHolograms.keySet());
         validIdentifiers.addAll(hologramAliases.keySet());
         return validIdentifiers;
+    }
+
+
+    /**
+     * Handle any logic required for when a player joins the server.
+     * This is mainly designed for Packeted holograms which have per-user data
+     * @param whoJoined The player who joined the server
+     * */
+    public void handlePlayerJoin(Player whoJoined) {
+        for(Hologram hologram : registeredHolograms.values()) {
+            if(hologram instanceof Packetable packetable) {
+                packetable.updatePlayer(whoJoined);
+            }
+        }
+    }
+
+    /**
+     * Handle any logic required for when a player loads a chunk.
+     * This is mainly designed for Packeted holograms which have per-user data
+     * @param player Player who loaded the chunk
+     * @param chunk Chunk the player loaded
+     * */
+    public void handlePlayerChunkLoad(Player player, Chunk chunk) {
+        List<Hologram> inChunk = registeredHolograms.values()
+                .stream()
+                .filter((h) -> h.getLocation() != null)
+                .filter((h) -> h.getLocation().getChunk().equals(chunk)).toList();
+        for(Hologram hologram : inChunk) {
+            if(hologram instanceof Packetable packetable) {
+                packetable.updatePlayer(player);
+            }
+        }
     }
 
 }
