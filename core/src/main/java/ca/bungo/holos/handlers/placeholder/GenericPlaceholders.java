@@ -1,6 +1,8 @@
 package ca.bungo.holos.handlers.placeholder;
 
 import ca.bungo.holos.handlers.PlaceholderHandler;
+import ca.bungo.holos.utility.ComponentUtility;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
@@ -16,7 +18,7 @@ public class GenericPlaceholders implements PlaceholderHandler {
     }
 
     @Override
-    public String handlePlaceholder(String input, Player player) {
+    public Component handlePlaceholder(String input, Player player) {
         //Super generic, basically let intellisense fill in all this data
         //This method exists in preperation for Placeholder and MiniPlaceholders, but is testing to start
         String output = input;
@@ -35,6 +37,6 @@ public class GenericPlaceholders implements PlaceholderHandler {
         output = output.replaceAll("%z%", String.valueOf(player.getLocation().getBlockZ()));
         output = output.replaceAll("%yaw%", String.valueOf(player.getLocation().getYaw()));
         output = output.replaceAll("%pitch%", String.valueOf(player.getLocation().getPitch()));
-        return output;
+        return ComponentUtility.convertToComponent(output);
     }
 }

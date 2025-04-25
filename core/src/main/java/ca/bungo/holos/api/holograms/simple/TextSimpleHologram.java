@@ -55,7 +55,7 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> implements P
             for(Player player : Bukkit.getOnlinePlayers()) {
                 display = (TextDisplay) display.copy();
                 display.setLineWidth(10000);
-                display.text(ComponentUtility.convertToComponent(BungosHolos.get().placeholderHandler.handlePlaceholder(text, player)));
+                display.text(BungosHolos.get().placeholderHandler.handlePlaceholder(text, player));
                 display.setBackgroundColor(backgroundColor);
                 display.setPersistent(persistent);
                 display.setAlignment(textAlignment);

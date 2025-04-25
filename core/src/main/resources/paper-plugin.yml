@@ -8,3 +8,6 @@ dependencies:
     PlaceholderAPI:
       required: false
       load: BEFORE
+    MiniPlaceholders:
+      required: false
+      load: BEFORE

@@ -1,5 +1,6 @@
 package ca.bungo.holos.handlers;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 
 public interface PlaceholderHandler {
@@ -17,6 +18,5 @@ public interface PlaceholderHandler {
      * @param player Player to check placeholders against
      * @return Formatted String
      * */
-    String handlePlaceholder(String input, Player player);
-
+    Component handlePlaceholder(String input, Player player);
 }
