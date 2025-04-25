@@ -34,16 +34,16 @@ public class TestCommand extends BaseCommand {
 
     @Default
     public void onDefaultCommand(Player player) {
-        try {
-            player.sendMessage(Component.text("Loading image test", NamedTextColor.YELLOW));
-            NetworkUtility.getPlayerSkin(player.getUniqueId().toString()).thenAccept((colors -> {
-                ImageHologram hologram = new ImageHologram(colors);
-                Location location = player.getEyeLocation().add(player.getLocation().getDirection().multiply(2));
-                Bukkit.getScheduler().runTask(BungosHolos.get(), () -> hologram.spawn(location));
-            }));
-        } catch (URISyntaxException e){
-            player.sendMessage(ComponentUtility.convertToComponent("&cSomething went wrong when trying to get the image."));
-        }
+        player.sendMessage(Component.text("Loading skin test", NamedTextColor.YELLOW));
+        ImageHologram.PlayerSkinHologram hologram = new ImageHologram.PlayerSkinHologram(
+                player.getUniqueId().toString(),
+                ImageHologram.PlayerSkinHologram.HologramType.FULL
+        );
+        Location location = player.getEyeLocation().clone().add(player.getLocation().getDirection().multiply(2));
+        location.setPitch(0);
+        location.setYaw(player.getYaw() - 180);
+        hologram.setScale(5f);
+        hologram.spawn(location);
     }
 
     @Subcommand("text")
