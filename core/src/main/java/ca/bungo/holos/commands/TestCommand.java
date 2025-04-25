@@ -1,14 +1,16 @@
 package ca.bungo.holos.commands;
 
+import ca.bungo.holos.BungosHolos;
+import ca.bungo.holos.api.holograms.Hologram;
 import ca.bungo.holos.api.holograms.SimpleHologram;
 import ca.bungo.holos.api.holograms.simple.TextSimpleHologram;
+import ca.bungo.holos.utility.ComponentUtility;
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.*;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Color;
 import org.bukkit.Location;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -24,14 +26,15 @@ public class TestCommand extends BaseCommand {
     @Dependency
     private Plugin bungosHolos;
 
-    @PreCommand
-    public boolean preCommand(CommandSender sender, String[] args) {
-        return sender instanceof Player;
-    }
-
     @Default
     public void onDefaultCommand(Player player) {
-        player.sendMessage("Hello World!");
+        Component dummyText = ComponentUtility.convertToComponent("&bI am sample text!");
+        for(Hologram hologram : BungosHolos.get().hologramRegistry.getRegisteredHolograms().values()) {
+            if(!(hologram instanceof TextSimpleHologram textSimpleHologram)) return;
+            player.sendMessage(textSimpleHologram.text());
+            textSimpleHologram.text(dummyText);
+            textSimpleHologram.redraw();
+        }
     }
 
     @Subcommand("text")

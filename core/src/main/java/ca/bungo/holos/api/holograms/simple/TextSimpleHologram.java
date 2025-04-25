@@ -6,9 +6,12 @@ import ca.bungo.holos.api.holograms.SimpleHologram;
 import ca.bungo.holos.utility.ComponentUtility;
 import lombok.Getter;
 import lombok.Setter;
+import net.kyori.adventure.pointer.Pointered;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.entity.Player;
@@ -69,7 +72,23 @@ public class TextSimpleHologram extends SimpleHologram<TextDisplay> implements P
             display.setPersistent(persistent);
             display.setAlignment(textAlignment);
         }
+    }
 
+    /**
+     * Set the text of the hologram via a Component. This is done via Mini-Messages {@link MiniMessage#serialize(Component)} function
+     * @param text Component to set the text to
+     * */
+    public void text(Component text) {
+        this.text = MiniMessage.miniMessage().serialize(text);
+    }
+
+    /**
+     * Get the component version of the Text Hologram.
+     * This is generic so it will not have any placeholders applied
+     * @return Raw Component of the hologram
+     * */
+    public Component text() {
+        return ComponentUtility.convertToComponent(text);
     }
 
     @Override
