@@ -8,6 +8,7 @@ import ca.bungo.holos.api.animations.simple.VerticalSimpleAnimation;
 import ca.bungo.holos.api.holograms.simple.BlockSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.ItemSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.TextSimpleHologram;
+import ca.bungo.holos.api.holograms.unique.image.ImageHologram;
 import ca.bungo.holos.commands.HologramCommand;
 import ca.bungo.holos.commands.TestCommand;
 import ca.bungo.holos.handlers.PlaceholderHandler;

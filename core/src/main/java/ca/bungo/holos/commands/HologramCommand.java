@@ -8,6 +8,7 @@ import ca.bungo.holos.api.holograms.Hologram;
 import ca.bungo.holos.api.holograms.simple.BlockSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.ItemSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.TextSimpleHologram;
+import ca.bungo.holos.api.holograms.unique.image.ImageHologram;
 import ca.bungo.holos.utility.ComponentUtility;
 import co.aikar.commands.*;
 import co.aikar.commands.annotation.*;
@@ -102,8 +103,6 @@ public class HologramCommand extends BaseCommand {
                 hologram.setBillboard(Display.Billboard.CENTER);
                 hologram.spawn(sender.getEyeLocation());
                 sender.sendMessage(ComponentUtility.generateEditComponent(hologram));
-                break;
-            case "entity":
                 break;
             case "item":
                 ItemStack possibleItem = sender.getInventory().getItemInMainHand();

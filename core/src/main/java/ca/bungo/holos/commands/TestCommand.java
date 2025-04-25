@@ -4,17 +4,23 @@ import ca.bungo.holos.BungosHolos;
 import ca.bungo.holos.api.holograms.Hologram;
 import ca.bungo.holos.api.holograms.SimpleHologram;
 import ca.bungo.holos.api.holograms.simple.TextSimpleHologram;
+import ca.bungo.holos.api.holograms.unique.image.ImageHologram;
 import ca.bungo.holos.utility.ComponentUtility;
+import ca.bungo.holos.utility.NetworkUtility;
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.*;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
+import javax.print.URIException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,12 +34,15 @@ public class TestCommand extends BaseCommand {
 
     @Default
     public void onDefaultCommand(Player player) {
-        Component dummyText = ComponentUtility.convertToComponent("&bI am sample text!");
-        for(Hologram hologram : BungosHolos.get().hologramRegistry.getRegisteredHolograms().values()) {
-            if(!(hologram instanceof TextSimpleHologram textSimpleHologram)) return;
-            player.sendMessage(textSimpleHologram.text());
-            textSimpleHologram.text(dummyText);
-            textSimpleHologram.redraw();
+        try {
+            player.sendMessage(Component.text("Loading image test", NamedTextColor.YELLOW));
+            NetworkUtility.getPlayerSkin(player.getUniqueId().toString()).thenAccept((colors -> {
+                ImageHologram hologram = new ImageHologram(colors);
+                Location location = player.getEyeLocation().add(player.getLocation().getDirection().multiply(2));
+                Bukkit.getScheduler().runTask(BungosHolos.get(), () -> hologram.spawn(location));
+            }));
+        } catch (URISyntaxException e){
+            player.sendMessage(ComponentUtility.convertToComponent("&cSomething went wrong when trying to get the image."));
         }
     }
 
