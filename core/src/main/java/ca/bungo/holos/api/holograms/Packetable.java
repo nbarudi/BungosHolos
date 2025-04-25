@@ -6,9 +6,13 @@ import org.bukkit.entity.Player;
 import java.util.List;
 import java.util.Set;
 
+
+/**
+ * Packet typed holograms require some customization handling
+ * If you're making a hologram, honestly, probably should design your own handler
+ * as mine is by no means going to be the best option but it works for what I'm doing.
+ * */
 public interface Packetable {
-
-
 
     /**
      * Get the text display we need to update

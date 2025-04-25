@@ -78,10 +78,18 @@ public class AnimationRegistry {
         return animations.keySet();
     }
 
+    /**
+     * Wait for an animation to be loaded into memory.
+     * Designed to keep in mind that plugin developers have the option to create
+     * custom animations and register them here. If they do, we will not know they exist
+     * until after they load. So we wait.
+     * @param animationName Animation to wait for
+     * @return Completable Future of the animation that has been found
+     * */
     public CompletableFuture<Animation> waitForAnimation(String animationName) {
         CompletableFuture<Animation> future = new CompletableFuture<>();
         if(!animations.containsKey(animationName)){
-            if(!BungosHolos.DISABLED){
+            if(!BungosHolos.DISABLED){ // I hate bukkit serialization
                 new BukkitRunnable() {
                     public void run() {
                         Animation animation = getAnimation(animationName);

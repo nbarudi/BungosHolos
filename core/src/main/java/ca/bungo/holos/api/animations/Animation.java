@@ -19,13 +19,30 @@ public abstract class Animation implements Cloneable, ConfigurationSerializable 
     private boolean loopable;
     private String name;
 
+    /**
+     * Create a new animation instance
+     * @param name Name of the animation created
+     * @param tickTime How long does the animation last?
+     * @param loopable Is this animation looping?
+     * */
     public Animation(String name, int tickTime, boolean loopable) {
         this.name = name;
         this.tickTime = tickTime;
         this.loopable = loopable;
     }
 
+    /**
+     * Get the offset bassed off how many ticks have passed in the animation
+     * @param tick Ticks passed in the animation
+     * @return Vector3 (x, y, z) offset for the animation
+     * */
     public abstract @NotNull Vector3f getPositionOffset(float tick);
+
+    /**
+     * Get the rotational offset based off how many ticks have passed in the animation
+     * @param tick Ticks passed in the animation
+     * @return Vector2 (yaw, pitch) rotation for the animation
+     * */
     public abstract @NotNull Vector2f getRotationOffset(float tick);
 
     @Override
@@ -45,6 +62,9 @@ public abstract class Animation implements Cloneable, ConfigurationSerializable 
         this.loopable = (boolean)data.get("loopable");
     }
 
+    /**
+     * Create a new instance of the animation
+     * */
     public abstract Animation clone();
     public abstract void saveUniqueContent(Map<String, Object> map);
 

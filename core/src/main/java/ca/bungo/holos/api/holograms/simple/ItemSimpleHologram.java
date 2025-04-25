@@ -12,6 +12,7 @@ import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,6 +33,10 @@ public class ItemSimpleHologram extends SimpleHologram<ItemDisplay> {
     private boolean persistent;
     private ItemDisplay.ItemDisplayTransform displayTransform;
 
+    /**
+     * Create a new Item Hologram
+     * @param itemStack Item to base the hologram off
+     * */
     public ItemSimpleHologram(ItemStack itemStack) {
         super(ItemDisplay.class);
         this.itemStack = itemStack;
@@ -47,29 +52,61 @@ public class ItemSimpleHologram extends SimpleHologram<ItemDisplay> {
         getDisplay().setPersistent(persistent);
     }
 
+    /**
+     * Edit the item meta directly as needed
+     * @param consumer function to edit the item mata
+     * */
+    @ApiStatus.Experimental
     public void editItemMeta(Consumer<? super ItemMeta> consumer){
         ItemMeta meta = itemStack.getItemMeta();
         consumer.accept(meta);
         itemStack.setItemMeta(meta);
     }
 
+    /**
+     * Set the item valued data via Papers DataComponent API
+     * @param component Component to edit
+     * @param data Data being edited
+     * */
+    @ApiStatus.Experimental
     public <T> void setData(DataComponentType.Valued<T> component, T data) {
         itemStack.setData(component, data);
     }
 
+    /**
+     * Set the item unvalued data via Papers DataComponent API
+     * @param component Component to edit
+     * */
+    @ApiStatus.Experimental
     public void setData(DataComponentType.NonValued component) {
         itemStack.setData(component);
     }
 
+    /**
+     * Get the value of the data component
+     * @param component Component to get the value of
+     * @return The value
+     * */
+    @ApiStatus.Experimental
     public <T> T getData(DataComponentType.Valued<T> component) {
         return itemStack.getData(component);
     }
 
-    public <T> void resetData(DataComponentType.Valued<T> component) {
+    /**
+     * Reset the valued component to default values
+     * @param component Component to reset
+     * */
+    @ApiStatus.Experimental
+    public <T> void resetData(DataComponentType component) {
         itemStack.resetData(component);
     }
 
-    public <T> void removeData(DataComponentType.Valued<T> component) {
+    /**
+     * Remove a data component
+     * @param component Component to remove
+     * */
+    @ApiStatus.Experimental
+    public <T> void removeData(DataComponentType component) {
         itemStack.unsetData(component);
     }
 

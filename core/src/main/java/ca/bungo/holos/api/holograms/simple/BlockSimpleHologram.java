@@ -26,12 +26,20 @@ public class BlockSimpleHologram extends SimpleHologram<BlockDisplay> {
     private BlockData blockData;
     private boolean persistent;
 
+    /**
+     * Create a new Block hologram via the Material type to use
+     * @param material Material of the block
+     * */
     public BlockSimpleHologram(Material material) {
         super(BlockDisplay.class);
         this.blockData = material.createBlockData();
         this.persistent = true;
     }
 
+    /**
+     * Create a new block hologram via the BlockData
+     * @param blockData Block data for the hologram
+     * */
     public BlockSimpleHologram(BlockData blockData) {
         super(BlockDisplay.class);
         this.blockData = blockData;

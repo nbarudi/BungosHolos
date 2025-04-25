@@ -97,6 +97,7 @@ public class BungosHolos extends JavaPlugin {
             case "1.21.1":
             case "1.21.3":
             case "1.21.4":
+            default:
                 try {
                     Class<?> handler = Class.forName(ComponentUtility.format(packageString, "1_21_R1"));
                     this.packetService = (PacketService) handler.getConstructor(PacketHelper.class).newInstance(helper);

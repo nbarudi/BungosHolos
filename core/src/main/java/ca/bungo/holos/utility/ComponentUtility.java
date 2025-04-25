@@ -9,6 +9,12 @@ import org.slf4j.helpers.MessageFormatter;
 
 public class ComponentUtility {
 
+    /**
+     * Convert a strong with & colour codes to a Component via MiniMessage.
+     * Also, will then convert any mini message strings accordingly
+     * @param message Message to convert to a component
+     * @return Resulting component after serialization
+     * */
     public static Component convertToComponent(String message){
         message = message.replace("&1", "<dark_blue>");
         message = message.replace("&2", "<dark_green>");
@@ -42,6 +48,14 @@ public class ComponentUtility {
         return MiniMessage.miniMessage().deserialize(message).decoration(TextDecoration.ITALIC, false);
     }
 
+    /**
+     * Convert a strong with & colour codes to a Component via MiniMessage.
+     * Also, will then convert any mini message strings accordingly.
+     * Will also allow custom Tag Resolvers
+     * @param message Message to convert to a component
+     * @param resolvers Any extra tag resolvers required for the MiniMessage conversion
+     * @return Resulting component after serialization
+     * */
     public static Component convertToComponent(String message, TagResolver... resolvers){
         message = message.replace("&1", "<dark_blue>");
         message = message.replace("&2", "<dark_green>");
@@ -75,6 +89,11 @@ public class ComponentUtility {
         return MiniMessage.miniMessage().deserialize(message, resolvers).decoration(TextDecoration.ITALIC, false);
     }
 
+    /**
+     * Generating the hologram edit chat message
+     * @param hologram Hologram which will be edited
+     * @return Formatted component
+     * */
     public static Component generateEditComponent(Hologram hologram){
         return convertToComponent(
                 format("""
@@ -92,6 +111,12 @@ public class ComponentUtility {
         );
     }
 
+    /**
+     * Just an SLF4J string format wrapper
+     * @param toFormat String that will be formatted
+     * @param params Objects to be added to the format
+     * @return Formatted string
+     * */
     public static String format(String toFormat, Object... params){
         return MessageFormatter.arrayFormat(toFormat, params).getMessage();
     }
