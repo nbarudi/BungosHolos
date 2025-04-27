@@ -49,20 +49,32 @@ public class Player3DSkinHologram implements Hologram {
         }
     }
     private enum BodyPart {
-        HEAD,
-        BODY,
-        LEFT_ARM,
-        RIGHT_ARM,
-        LEFT_LEG,
-        RIGHT_LEG,
+        HEAD(0, 4f, 0),
+        BODY(0, 2.5f, -0.25f),
+        LEFT_ARM(1.5f, 2, 0.5f),
+        RIGHT_ARM(-1.5f, 2, 0.5f),
+        LEFT_LEG(1, 0, 0.5f),
+        RIGHT_LEG(-1, 0, 0.5f),
         ;
-        ;
+
+        private final float xOffset;
+        private final float yOffset;
+        private final float zOffset;
+
+        BodyPart(float xOffset, float yOffset, float zOffset) {
+            this.xOffset = xOffset;
+            this.yOffset = yOffset;
+            this.zOffset = zOffset;
+        }
+
     }
 
     private record Pixel(int x, int y, int width, Color color){}
     private record SkinZone(int startX, int startY, int xSize, int ySize, boolean isOverlay, BodyPart bodyPart, BodyPosition bodyPosition) {}
 
     private static List<SkinZone> skinZones = List.of(
+
+            //Main Skin
             new SkinZone(8, 48, 8, 8, false, BodyPart.HEAD, BodyPosition.FRONT),
             new SkinZone(24, 48, 8, 8, false, BodyPart.HEAD, BodyPosition.BACK),
             new SkinZone(0, 48, 8, 8, false, BodyPart.HEAD, BodyPosition.RIGHT),
@@ -70,6 +82,14 @@ public class Player3DSkinHologram implements Hologram {
             new SkinZone(8, 56, 8, 8, false, BodyPart.HEAD, BodyPosition.TOP),
             new SkinZone(16, 56, 8, 8, false, BodyPart.HEAD, BodyPosition.BOTTOM),
 
+            new SkinZone(20, 32, 8, 12, false, BodyPart.BODY, BodyPosition.FRONT),
+            new SkinZone(32, 32, 8, 12, false, BodyPart.BODY, BodyPosition.BACK),
+            new SkinZone(16, 32, 4, 12, false, BodyPart.BODY, BodyPosition.RIGHT),
+            new SkinZone(28, 32, 4, 12, false, BodyPart.BODY, BodyPosition.LEFT),
+            new SkinZone(20, 44, 8, 4, false, BodyPart.BODY, BodyPosition.TOP),
+            new SkinZone(28, 44, 8, 4, false, BodyPart.BODY, BodyPosition.BOTTOM),
+
+            //Overlays
             new SkinZone(40, 48, 8, 8, true, BodyPart.HEAD, BodyPosition.FRONT),
             new SkinZone(56, 48, 8, 8, true, BodyPart.HEAD, BodyPosition.BACK),
             new SkinZone(32, 48, 8, 8, true, BodyPart.HEAD, BodyPosition.RIGHT),
@@ -164,43 +184,81 @@ public class Player3DSkinHologram implements Hologram {
 
             OffsetDefiner offsetDefiner = (p,v) -> new Vector3f();
 
+            float xBodyOffset = zone.bodyPart.xOffset * pixelSize;
+            float yBodyOffset = zone.bodyPart.yOffset * pixelSize;
+            float zBodyOffset = zone.bodyPart.zOffset * pixelSize;
+
             if(zone.bodyPart.equals(BodyPart.HEAD)) {
                 offsetDefiner = switch (zone.bodyPosition) {
                     case FRONT -> (pixel, base) -> new Vector3f(
-                            base.x,
-                            base.y,
-                            base.z + overlayOffset
+                            base.x + xBodyOffset,
+                            base.y + yBodyOffset,
+                            base.z + overlayOffset + zBodyOffset
                     );
                     case BACK -> (pixel, base) -> new Vector3f(
-                            (zone.xSize - pixel.x) * pixelSizeDiv8 - (pixel.width * pixelSizeDiv20),
-                            base.y,
-                            base.z - pixelSizeDiv8 * zone.xSize - overlayOffset
+                            (zone.xSize - pixel.x) * pixelSizeDiv8 - (pixel.width * pixelSizeDiv20) + xBodyOffset,
+                            base.y + yBodyOffset,
+                            base.z - pixelSizeDiv8 * zone.xSize - overlayOffset + zBodyOffset
                     );
                     case RIGHT -> (pixel, base) -> new Vector3f(
-                            base.z - overlayOffset,
-                            base.y,
-                            base.x - pixelSizeDiv8 * zone.xSize
+                            base.z - overlayOffset + xBodyOffset,
+                            base.y + yBodyOffset,
+                            base.x - pixelSizeDiv8 * zone.xSize + zBodyOffset
                     );
                     case LEFT -> (pixel, base) -> new Vector3f(
-                            base.z + pixelSizeDiv8 * zone.xSize + overlayOffset,
-                            base.y,
-                            (zone.xSize - pixel.x) * pixelSizeDiv8 - (pixel.width * pixelSizeDiv20) - pixelSizeDiv8 * zone.xSize
+                            base.z + pixelSizeDiv8 * zone.xSize + overlayOffset + xBodyOffset,
+                            base.y + yBodyOffset,
+                            (zone.xSize - pixel.x) * pixelSizeDiv8 - (pixel.width * pixelSizeDiv20) - pixelSizeDiv8 * zone.xSize + zBodyOffset
                     );
                     case TOP -> (pixel, base) -> new Vector3f(
-                            base.x,
-                            base.z + pixelSizeDiv8 * zone.xSize + overlayOffset,
-                            (zone.ySize - pixel.y) * pixelSizeDiv8 - pixelSizeDiv8 * zone.xSize
+                            base.x + xBodyOffset,
+                            base.z + pixelSizeDiv8 * zone.xSize + overlayOffset + yBodyOffset,
+                            (zone.ySize - pixel.y) * pixelSizeDiv8 - pixelSizeDiv8 * zone.xSize + zBodyOffset
                     );
                     case BOTTOM -> (pixel, base) -> new Vector3f(
-                            (zone.xSize - pixel.x) * pixelSizeDiv8 - (pixel.width * pixelSizeDiv20),
-                            base.z - overlayOffset,
-                            (zone.xSize - pixel.y) * pixelSizeDiv8 - pixelSizeDiv8 * zone.xSize
+                            (zone.xSize - pixel.x) * pixelSizeDiv8 - (pixel.width * pixelSizeDiv20) + xBodyOffset,
+                            base.z - overlayOffset + yBodyOffset,
+                            (zone.xSize - pixel.y) * pixelSizeDiv8 - pixelSizeDiv8 * zone.xSize + zBodyOffset
                     );
                 };
 
             }
 
+            else if(zone.bodyPart.equals(BodyPart.BODY)) {
+                offsetDefiner = switch (zone.bodyPosition) {
+                    case FRONT -> (pixel, base) -> new Vector3f(
+                            base.x + xBodyOffset,
+                            base.y + yBodyOffset,
+                            base.z + overlayOffset + zBodyOffset
+                    );
+                    case BACK -> (pixel, base) -> new Vector3f(
+                            (zone.xSize - pixel.x) * pixelSizeDiv8 - (pixel.width * pixelSizeDiv20) + xBodyOffset,
+                            base.y + yBodyOffset,
+                            base.z - pixelSizeDiv8 * (zone.xSize/2f) - overlayOffset + zBodyOffset
+                    );
+                    case RIGHT -> (pixel, base) -> new Vector3f(
+                            base.z - overlayOffset + xBodyOffset,
+                            base.y + yBodyOffset,
+                            base.x - pixelSizeDiv8 * zone.xSize + zBodyOffset
+                    );
+                    case LEFT -> (pixel, base) -> new Vector3f(
+                            base.z + pixelSizeDiv8 * (zone.xSize*2) + overlayOffset + xBodyOffset,
+                            base.y + yBodyOffset,
+                            (zone.xSize - pixel.x) * pixelSizeDiv8 - (pixel.width * pixelSizeDiv20) - pixelSizeDiv8 * zone.xSize + zBodyOffset
+                    );
+                    case TOP -> (pixel, base) -> new Vector3f(
+                            base.x + xBodyOffset,
+                            base.z + pixelSizeDiv8 * (zone.xSize*1.5f) + overlayOffset + yBodyOffset,
+                            (zone.ySize - pixel.y) * pixelSizeDiv8 - pixelSizeDiv8 * (zone.xSize/2f) + zBodyOffset
+                    );
+                    case BOTTOM -> (pixel, base) -> new Vector3f(
+                            (zone.xSize - pixel.x) * pixelSizeDiv8 - (pixel.width * pixelSizeDiv20) + xBodyOffset,
+                            base.z - overlayOffset + yBodyOffset,
+                            (zone.xSize - pixel.y) * pixelSizeDiv8 - pixelSizeDiv8 * (zone.xSize) + zBodyOffset
+                    );
+                };
 
+            }
             spawnPixels(pixels, zone.bodyPosition.rotation, offsetDefiner, zone.xSize);
         }
     }
