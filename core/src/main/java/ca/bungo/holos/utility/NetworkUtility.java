@@ -24,7 +24,10 @@ public class NetworkUtility {
 
     public static final String MOJANG_SESSION_API = "https://sessionserver.mojang.com/session/minecraft/profile/";
 
+    private static final boolean debug = false;
+
     public static CompletableFuture<Color[][]> getPlayerSkin(String playerUUID) throws URISyntaxException {
+        if(debug) return getNetworkImage("https://i.bungo.ca/u/botgo.png");
         try(HttpClient client = HttpClient.newHttpClient()){
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(new URI(MOJANG_SESSION_API + playerUUID + "?unsigned"))

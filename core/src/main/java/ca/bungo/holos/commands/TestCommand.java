@@ -1,26 +1,19 @@
 package ca.bungo.holos.commands;
 
-import ca.bungo.holos.BungosHolos;
-import ca.bungo.holos.api.holograms.Hologram;
 import ca.bungo.holos.api.holograms.SimpleHologram;
 import ca.bungo.holos.api.holograms.simple.TextSimpleHologram;
+import ca.bungo.holos.api.holograms.unique.Player3DSkinHologram;
 import ca.bungo.holos.api.holograms.unique.image.ImageHologram;
-import ca.bungo.holos.utility.ComponentUtility;
-import ca.bungo.holos.utility.NetworkUtility;
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.*;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
-import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
-import javax.print.URIException;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,14 +28,10 @@ public class TestCommand extends BaseCommand {
     @Default
     public void onDefaultCommand(Player player) {
         player.sendMessage(Component.text("Loading skin test", NamedTextColor.YELLOW));
-        ImageHologram.PlayerSkinHologram hologram = new ImageHologram.PlayerSkinHologram(
-                player.getUniqueId().toString(),
-                ImageHologram.PlayerSkinHologram.HologramType.FULL
-        );
+        Player3DSkinHologram hologram = new Player3DSkinHologram(player.getUniqueId().toString());
         Location location = player.getEyeLocation().clone().add(player.getLocation().getDirection().multiply(2));
         location.setPitch(0);
         location.setYaw(player.getYaw() - 180);
-        hologram.setScale(5f);
         hologram.spawn(location);
     }
 

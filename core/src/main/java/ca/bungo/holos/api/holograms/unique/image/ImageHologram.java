@@ -3,13 +3,11 @@ package ca.bungo.holos.api.holograms.unique.image;
 import ca.bungo.holos.BungosHolos;
 import ca.bungo.holos.api.holograms.Hologram;
 import ca.bungo.holos.api.holograms.SimpleHologram;
-import ca.bungo.holos.registries.HologramRegistry;
 import ca.bungo.holos.utility.NetworkUtility;
 import ca.bungo.holos.utility.PixelUtility;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -30,7 +28,6 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Getter
@@ -197,9 +194,9 @@ public class ImageHologram implements Hologram {
         }
     }
 
-    public static class PlayerSkinHologram extends ImageHologram {
+    public static class Player2DSkinHologram extends ImageHologram {
         public enum HologramType {
-            HEAD,FLAT,FULL
+            HEAD,FULL
         }
 
         @Getter
@@ -213,10 +210,7 @@ public class ImageHologram implements Hologram {
         private boolean isLoaded = false;
         private boolean loadAttempted = false;
 
-        // First, we need to add a list to store all the face holograms in the PlayerSkinHologram class
-        private final List<ImageHologram> faceHolograms = new ArrayList<>();
-
-        public PlayerSkinHologram(@NotNull String playerUUID, @NotNull HologramType type) {
+        public Player2DSkinHologram(@NotNull String playerUUID, @NotNull HologramType type) {
             super(new Color[0][0]);
 
             this.playerUUID = playerUUID;
@@ -236,7 +230,7 @@ public class ImageHologram implements Hologram {
                         this.setColors(head);
 
                     }
-                    else if(type == HologramType.FLAT) {
+                    else if(type == HologramType.FULL) {
                         Color[][] fullBody = new Color[16][32];
                         Color transparent = Color.fromARGB(0,0,0,0);
                         for(int i = 0; i < 16; i++) {
@@ -275,9 +269,6 @@ public class ImageHologram implements Hologram {
 
                         this.setColors(fullBody);
                     }
-                    else if (type == HologramType.FULL) {
-                        this.setColors(skin);
-                    }
 
                     buildPixelMap();
                     isLoaded = true;
@@ -298,128 +289,13 @@ public class ImageHologram implements Hologram {
             }
         }
 
-
-        // Then, we need to override the spawn method to handle the 3D positioning of each face
         @Override
         public void spawn(Location location) {
-            this.setLocation(location);
-            if (!isLoaded) {
+            if(!isLoaded) {
                 loadAttempted = true;
-                BungosHolos.LOGGER.info("Hologram {} is not loaded yet. When complete skin will render...", this.getUniqueIdentifier());
                 return;
             }
-
-            // If this is a FULL type hologram, we need to create and position all the face holograms
-            if (type == HologramType.FULL) {
-                // Clean up any existing face holograms
-                for (ImageHologram hologram : faceHolograms) {
-                    hologram.remove();
-                }
-                faceHolograms.clear();
-
-                // Create and position all the face holograms
-                spawnFullSkinHologram(location);
-            } else {
-                // For other types, use the default spawn method
-                super.spawn(location);
-            }
-        }
-
-        // Method to create and position all the face holograms for the 3D player skin
-        private void spawnFullSkinHologram(Location baseLocation) {
-
-            //Main
-            Color[][] headFront = PixelUtility.extractRegion(getColors(), 8, 48, 8, 8);
-            Color[][] headBack = PixelUtility.extractRegion(getColors(), 24, 48, 8, 8);
-            Color[][] headRight = PixelUtility.extractRegion(getColors(), 0, 48, 8, 8);
-            Color[][] headLeft = PixelUtility.extractRegion(getColors(), 16, 48, 8, 8);
-            Color[][] headTop = PixelUtility.extractRegion(getColors(), 8, 56, 8, 8);
-            Color[][] headBottom = PixelUtility.extractRegion(getColors(), 16, 56, 8, 8);
-
-            //Overlay
-            Color[][] overlayFront = PixelUtility.extractRegion(getColors(), 40, 48, 8, 8);
-            Color[][] overlayBack = PixelUtility.extractRegion(getColors(), 56, 48, 8, 8);
-            Color[][] overlayRight = PixelUtility.extractRegion(getColors(), 32, 48, 8, 8);
-            Color[][] overlayLeft = PixelUtility.extractRegion(getColors(), 48, 48, 8, 8);
-            Color[][] overlayTop = PixelUtility.extractRegion(getColors(), 40, 56, 8, 8);
-            Color[][] overlayBottom = PixelUtility.extractRegion(getColors(), 48, 56, 8, 8);
-
-            // Scale factor for the hologram
-            float scale = this.getPixelSize();
-
-            // Create and position head faces
-            // Head is positioned at the top of the model
-            Location headLocation = baseLocation.clone().add(0, 1.5 * scale, 0);
-
-            // Head Main
-            spawnFace(headLocation.clone().add(0, 0, 0.25 * scale), headFront, 8, 8, 0, scale);
-            spawnFace(headLocation.clone().add(scale, 0, -0.75 * scale), headBack, 8, 8, 180, scale);
-            spawnFace(headLocation.clone().add(0, 0, -0.75 * scale), headRight, 8, 8, 90, scale);
-            spawnFace(headLocation.clone().add(scale, 0, 0.25 * scale), headLeft, 8, 8, -90, scale);
-            spawnFace(headLocation.clone().add(0, scale, 0.25 * scale), headTop, 8, 8, 0, -90, scale);
-            spawnFace(headLocation.clone().add(scale, 0, 0.25 * scale), headBottom, 8, 8, 180, 90, scale);
-
-            //Head Overlay
-            spawnFace(headLocation.clone().add(0, 0, 0.25 * scale + 0.05*scale), overlayFront, 8, 8, 0, scale);
-            spawnFace(headLocation.clone().add(scale, 0, -0.75 * scale - 0.05*scale), overlayBack, 8, 8, 180, scale);
-            spawnFace(headLocation.clone().add(-0.05*scale, 0, -0.75 * scale), overlayRight, 8, 8, 90, scale);
-            spawnFace(headLocation.clone().add(scale + 0.05*scale, 0, 0.25 * scale), overlayLeft, 8, 8, -90, scale);
-            spawnFace(headLocation.clone().add(0, scale + 0.05*scale, 0.25 * scale), overlayTop, 8, 8, 0, -90, scale);
-            spawnFace(headLocation.clone().add(scale, 0 - 0.05*scale, 0.25 * scale), overlayBottom, 8, 8, 180, 90, scale);
-        }
-
-        private void spawnFace(Location location, Color[][] colors, int width, int height, float yaw, float scale) {
-            ImageHologram hologram = new ImageHologram(colors);
-            hologram.setPixelSize(scale);
-
-            // Set the yaw of the location to rotate the face
-            location.setYaw(yaw);
-
-            hologram.spawn(location);
-            faceHolograms.add(hologram);
-        }
-
-        // Add an overloaded method that also handles pitch
-        private void spawnFace(Location location, Color[][] colors, int width, int height, float yaw, float pitch, float scale) {
-            ImageHologram hologram = new ImageHologram(colors);
-            hologram.setPixelSize(scale);
-
-            // Set both yaw and pitch
-            location.setYaw(yaw);
-            location.setPitch(pitch);
-
-            hologram.spawn(location);
-            faceHolograms.add(hologram);
-        }
-
-        // Override the remove method to clean up all face holograms
-        @Override
-        public void remove() {
-            super.remove();
-
-            // Clean up any existing face holograms
-            for (ImageHologram hologram : faceHolograms) {
-                hologram.remove();
-            }
-            faceHolograms.clear();
-        }
-
-        // Override the teleport method to teleport all face holograms
-        @Override
-        public void teleport(Location location) {
-            super.teleport(location);
-
-            // If this is a FULL type hologram, we need to respawn all the face holograms at the new location
-            if (type == HologramType.FULL && isLoaded) {
-                // Clean up any existing face holograms
-                for (ImageHologram hologram : faceHolograms) {
-                    hologram.remove();
-                }
-                faceHolograms.clear();
-
-                // Create and position all the face holograms at the new location
-                spawnFullSkinHologram(location);
-            }
+            super.spawn(location);
         }
     }
 
