@@ -26,9 +26,7 @@ import org.joml.Vector3f;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Getter
 @Setter
@@ -150,6 +148,8 @@ public class ImageHologram implements Hologram {
         for(Display display : displays) {
             display.setPersistent(false);
         }
+
+        cleanup();
     }
 
     @Override
@@ -194,7 +194,7 @@ public class ImageHologram implements Hologram {
         }
     }
 
-    public static class Player2DSkinHologram extends ImageHologram {
+    public static class Player2DSkinHologram extends ImageHologram implements ConfigurationSerializable {
         public enum HologramType {
             HEAD,FULL
         }
@@ -215,7 +215,7 @@ public class ImageHologram implements Hologram {
 
             this.playerUUID = playerUUID;
             this.type = type;
-
+            BungosHolos.get().hologramRegistry.registerHologram(this);
             loadPlayerSkin();
         }
 
@@ -228,7 +228,6 @@ public class ImageHologram implements Hologram {
                     if(type == HologramType.HEAD) {
                         Color[][] head = PixelUtility.extractRegion(skin, 8, 48, 8, 8);
                         this.setColors(head);
-
                     }
                     else if(type == HologramType.FULL) {
                         Color[][] fullBody = new Color[16][32];
@@ -291,11 +290,39 @@ public class ImageHologram implements Hologram {
 
         @Override
         public void spawn(Location location) {
+            this.setLocation(location);
             if(!isLoaded) {
                 loadAttempted = true;
                 return;
             }
             super.spawn(location);
+        }
+
+        @Override
+        public @NotNull Map<String, Object> serialize() {
+            Map<String, Object> result = new HashMap<>();
+            result.put("location", this.getLocation());
+            result.put("uuid", this.getUniqueIdentifier());
+            result.put("player_uuid", this.getPlayerUUID());
+            result.put("pixel_size", this.getPixelSize());
+            result.put("type", this.getType().name());
+            return result;
+        }
+
+        public static Player2DSkinHologram deserialize(@NotNull Map<String, Object> args) {
+            Location location = (Location) args.get("location");
+            String uuid = (String) args.get("uuid");
+            String playerUUID = (String) args.get("player_uuid");
+            float pixelSize = (float) ((double)args.get("pixel_size"));
+            HologramType type = HologramType.valueOf((String) args.get("type"));
+
+            Player2DSkinHologram hologram = new Player2DSkinHologram(playerUUID, type);
+            BungosHolos.get().hologramRegistry.unregisterHologram(hologram);
+            hologram.setUuid(uuid);
+            hologram.setPixelSize(pixelSize);
+            hologram.setLocation(location);
+            if(!BungosHolos.DISABLED && location != null) hologram.spawn(location);
+            return hologram;
         }
     }
 

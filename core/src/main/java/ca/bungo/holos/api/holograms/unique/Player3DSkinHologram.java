@@ -2,7 +2,9 @@ package ca.bungo.holos.api.holograms.unique;
 
 import ca.bungo.holos.BungosHolos;
 import ca.bungo.holos.api.holograms.Hologram;
+import ca.bungo.holos.api.holograms.SimpleHologram;
 import ca.bungo.holos.api.holograms.unique.image.ImageHologram;
+import ca.bungo.holos.registries.HologramRegistry;
 import ca.bungo.holos.utility.NetworkUtility;
 import ca.bungo.holos.utility.PixelUtility;
 import lombok.Getter;
@@ -11,15 +13,21 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Transformation;
+import org.jetbrains.annotations.NotNull;
 import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -27,7 +35,7 @@ import java.util.function.Consumer;
 
 @Getter
 @Setter
-public class Player3DSkinHologram implements Hologram {
+public class Player3DSkinHologram implements Hologram, ConfigurationSerializable {
 
     private interface OffsetDefiner {
         Vector3f defineOffset(Pixel pixel, Vector3f baseOffset);
@@ -179,7 +187,7 @@ public class Player3DSkinHologram implements Hologram {
 
     private String playerUUID;
     private Location location;
-    float pixelSize = 0.25f;
+    float pixelSize = 0.75f;
     private boolean isSlim = false;
 
     private List<TextDisplay> displays = new ArrayList<>();
@@ -188,11 +196,14 @@ public class Player3DSkinHologram implements Hologram {
     private boolean loadAttempted = false;
 
     private Map<SkinZone, List<Pixel>> zonePixels = new HashMap<>();
+    private Map<BodyPart, List<TextDisplay>> perLimbDisplays = new HashMap<>();
 
     public Player3DSkinHologram(String playerUUID) {
         uuid = UUID.randomUUID().toString();
         this.playerUUID = playerUUID;
         this.location = null;
+
+        BungosHolos.get().hologramRegistry.registerHologram(this);
 
         loadPlayerSkin();
     }
@@ -262,7 +273,7 @@ public class Player3DSkinHologram implements Hologram {
 
 
             OffsetDefiner offsetDefiner = isSlim ? calculateSlimSkin(zone) : calculateClassicSkin(zone);
-            spawnPixels(pixels, zone.bodyPosition.rotation, offsetDefiner, zone.xSize);
+            spawnPixels(pixels, zone.bodyPosition.rotation, offsetDefiner, zone.xSize, zone.bodyPart);
         }
     }
 
@@ -570,7 +581,7 @@ public class Player3DSkinHologram implements Hologram {
         return offsetDefiner;
     }
 
-    private void spawnPixels(List<Pixel> toSpawn, Vector2f rotation, OffsetDefiner offsetDefiner, int rowSize) {
+    private void spawnPixels(List<Pixel> toSpawn, Vector2f rotation, OffsetDefiner offsetDefiner, int rowSize, BodyPart bodyPart) {
         new BukkitRunnable() {
             int index = 0;
             @Override
@@ -586,6 +597,7 @@ public class Player3DSkinHologram implements Hologram {
                     Bukkit.getScheduler().runTask(BungosHolos.get(), () -> {
                         TextDisplay display = createBasicDisplay(location);
                         displays.add(display);
+                        perLimbDisplays.getOrDefault(bodyPart, new ArrayList<>()).add(display);
                         display.setBackgroundColor(pixel.color);
 
                         float posX = pixel.x*pixelSize/(8) + (pixel.width*pixelSize/20f);
@@ -635,7 +647,28 @@ public class Player3DSkinHologram implements Hologram {
 
     @Override
     public void onDisable() throws IOException {
+        //Create configuration file
+        File file = new File(JavaPlugin.getProvidingPlugin(SimpleHologram.class).getDataFolder(), "holograms.yml");
+        if(!file.exists()) {
+            file.createNewFile();
+        }
 
+        //Load the configuration file api
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+
+        //Grab holograms: section
+        ConfigurationSection holograms = config.getConfigurationSection("holograms");
+        if(holograms == null) {
+            holograms = config.createSection("holograms");
+        }
+        if(this.getUniqueIdentifier() != null) {
+            holograms.set(this.getUniqueIdentifier(), this);
+        }
+        config.save(file);
+        for(Display display : displays) {
+            display.setPersistent(false);
+        }
+        cleanup();
     }
 
     @Override
@@ -644,15 +677,47 @@ public class Player3DSkinHologram implements Hologram {
         BungosHolos.get().hologramRegistry.unregisterHologram(this);
         loaded = false;
         loadAttempted = false;
-        uuid = null;
-        playerUUID = null;
-        location = null;
         displays.clear();
         zonePixels.clear();
     }
 
     @Override
     public void teleport(Location location) {
+        this.location = location;
+        for(TextDisplay display : displays) {
+            display.teleport(location);
+        }
+    }
 
+    public void teleport(Location location, boolean update) {
+        if(update) this.location = location;
+        for(TextDisplay display : displays) {
+            display.teleport(location);
+        }
+    }
+
+    @Override
+    public @NotNull Map<String, Object> serialize() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("uuid", uuid);
+        result.put("player_uuid", playerUUID);
+        result.put("location", location);
+        result.put("pixel_size", pixelSize);
+        return result;
+    }
+
+    public static Player3DSkinHologram deserialize(Map<String, Object> data){
+        Location location = (Location) data.get("location");
+        String uuid = (String) data.get("uuid");
+        String playerUUID = (String) data.get("player_uuid");
+        float pixelSize = (float) ((double)data.get("pixel_size"));
+        Player3DSkinHologram hologram = new Player3DSkinHologram(playerUUID);
+        BungosHolos.get().hologramRegistry.unregisterHologram(hologram);
+        hologram.setPixelSize(pixelSize);
+        hologram.setUuid(uuid);
+        hologram.setLocation(location);
+        if(location != null && !BungosHolos.DISABLED) hologram.spawn(hologram.getLocation());
+
+        return hologram;
     }
 }

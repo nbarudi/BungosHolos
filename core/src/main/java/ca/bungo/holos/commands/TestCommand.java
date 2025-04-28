@@ -28,7 +28,10 @@ public class TestCommand extends BaseCommand {
     @Default
     public void onDefaultCommand(Player player) {
         player.sendMessage(Component.text("Loading skin test", NamedTextColor.YELLOW));
-        Player3DSkinHologram hologram = new Player3DSkinHologram(player.getUniqueId().toString());
+        ImageHologram.Player2DSkinHologram hologram = new ImageHologram.Player2DSkinHologram(
+                player.getUniqueId().toString(),
+                ImageHologram.Player2DSkinHologram.HologramType.FULL
+        );
         Location location = player.getEyeLocation().clone().add(player.getLocation().getDirection().multiply(2));
         location.setPitch(0);
         location.setYaw(player.getYaw() - 180);

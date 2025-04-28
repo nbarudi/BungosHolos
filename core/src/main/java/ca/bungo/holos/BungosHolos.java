@@ -8,6 +8,7 @@ import ca.bungo.holos.api.animations.simple.VerticalSimpleAnimation;
 import ca.bungo.holos.api.holograms.simple.BlockSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.ItemSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.TextSimpleHologram;
+import ca.bungo.holos.api.holograms.unique.Player3DSkinHologram;
 import ca.bungo.holos.api.holograms.unique.image.ImageHologram;
 import ca.bungo.holos.commands.HologramCommand;
 import ca.bungo.holos.commands.TestCommand;
@@ -48,6 +49,8 @@ public class BungosHolos extends JavaPlugin {
         ConfigurationSerialization.registerClass(TextSimpleHologram.class);
         ConfigurationSerialization.registerClass(ItemSimpleHologram.class);
         ConfigurationSerialization.registerClass(BlockSimpleHologram.class);
+        ConfigurationSerialization.registerClass(ImageHologram.Player2DSkinHologram.class);
+        ConfigurationSerialization.registerClass(Player3DSkinHologram.class);
 
         //Registering Animations
         ConfigurationSerialization.registerClass(BounceSimpleAnimation.class);

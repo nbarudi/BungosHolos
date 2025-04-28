@@ -8,6 +8,7 @@ import ca.bungo.holos.api.holograms.Hologram;
 import ca.bungo.holos.api.holograms.simple.BlockSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.ItemSimpleHologram;
 import ca.bungo.holos.api.holograms.simple.TextSimpleHologram;
+import ca.bungo.holos.api.holograms.unique.Player3DSkinHologram;
 import ca.bungo.holos.api.holograms.unique.image.ImageHologram;
 import ca.bungo.holos.utility.ComponentUtility;
 import co.aikar.commands.*;
@@ -34,7 +35,7 @@ public class HologramCommand extends BaseCommand {
     public HologramCommand(){
         CommandCompletions<BukkitCommandCompletionContext> commandCompletions = BungosHolos.commandManager.getCommandCompletions();
         commandCompletions.registerCompletion("animtypes", c -> BungosHolos.get().animationRegistry.getRegisteredAnimations());
-        commandCompletions.registerCompletion("holotypes", c -> List.of("text", "block", "item", "entity"));
+        commandCompletions.registerCompletion("holotypes", c -> List.of("text", "block", "item", "player2d", "player3d"));
         commandCompletions.registerCompletion("holouuids", c -> BungosHolos.get().hologramRegistry.getValidHologramIdentifiers());
         commandCompletions.registerCompletion("holofields", c -> {
             String selected = selectedHolo.get(c.getIssuer().getUniqueId().toString());
@@ -110,6 +111,19 @@ public class HologramCommand extends BaseCommand {
                         possibleItem.getType().equals(Material.AIR) ? new ItemStack(Material.DIAMOND_SWORD) : possibleItem);
                 simpleHologram.spawn(sender.getEyeLocation());
                 sender.sendMessage(ComponentUtility.generateEditComponent(simpleHologram));
+                break;
+            case "player2d":
+                ImageHologram.Player2DSkinHologram player2DSkinHologram = new ImageHologram.Player2DSkinHologram(
+                        sender.getUniqueId().toString(),
+                        ImageHologram.Player2DSkinHologram.HologramType.FULL
+                );
+                player2DSkinHologram.spawn(sender.getEyeLocation());
+                sender.sendMessage(ComponentUtility.generateEditComponent(player2DSkinHologram));
+                break;
+            case "player3d":
+                Player3DSkinHologram player3DSkinHologram = new Player3DSkinHologram(sender.getUniqueId().toString());
+                player3DSkinHologram.spawn(sender.getLocation());
+                sender.sendMessage(ComponentUtility.generateEditComponent(player3DSkinHologram));
                 break;
             default:
                 sender.sendMessage(Component.text("Unknown hologram type.", NamedTextColor.RED));
