@@ -49,12 +49,12 @@ public class Player3DSkinHologram implements Hologram {
         }
     }
     private enum BodyPart {
-        HEAD(0, 4f, 0),
-        BODY(0, 2.5f, -0.25f),
-        LEFT_ARM(1.5f, 2, 0.5f),
-        RIGHT_ARM(-1.5f, 2, 0.5f),
-        LEFT_LEG(1, 0, 0.5f),
-        RIGHT_LEG(-1, 0, 0.5f),
+        HEAD(0, 3f, 0),
+        BODY(0, 1.5f, -0.25f),
+        LEFT_ARM(1f, 1.5f, -0.25f),
+        RIGHT_ARM(-0.5f, 1.5f, -0.25f),
+        LEFT_LEG(0.5f, 0, -0.25f),
+        RIGHT_LEG(0, 0, -0.25f),
         ;
 
         private final float xOffset;
@@ -75,6 +75,8 @@ public class Player3DSkinHologram implements Hologram {
     private static List<SkinZone> skinZones = List.of(
 
             //Main Skin
+
+            //Head
             new SkinZone(8, 48, 8, 8, false, BodyPart.HEAD, BodyPosition.FRONT),
             new SkinZone(24, 48, 8, 8, false, BodyPart.HEAD, BodyPosition.BACK),
             new SkinZone(0, 48, 8, 8, false, BodyPart.HEAD, BodyPosition.RIGHT),
@@ -82,6 +84,7 @@ public class Player3DSkinHologram implements Hologram {
             new SkinZone(8, 56, 8, 8, false, BodyPart.HEAD, BodyPosition.TOP),
             new SkinZone(16, 56, 8, 8, false, BodyPart.HEAD, BodyPosition.BOTTOM),
 
+            //Body
             new SkinZone(20, 32, 8, 12, false, BodyPart.BODY, BodyPosition.FRONT),
             new SkinZone(32, 32, 8, 12, false, BodyPart.BODY, BodyPosition.BACK),
             new SkinZone(16, 32, 4, 12, false, BodyPart.BODY, BodyPosition.RIGHT),
@@ -89,13 +92,87 @@ public class Player3DSkinHologram implements Hologram {
             new SkinZone(20, 44, 8, 4, false, BodyPart.BODY, BodyPosition.TOP),
             new SkinZone(28, 44, 8, 4, false, BodyPart.BODY, BodyPosition.BOTTOM),
 
+            //Right Arm
+            new SkinZone(44, 32, 4, 12, false, BodyPart.RIGHT_ARM, BodyPosition.FRONT),
+            new SkinZone(52, 32, 4, 12, false, BodyPart.RIGHT_ARM, BodyPosition.BACK),
+            new SkinZone(40, 32, 4, 12, false, BodyPart.RIGHT_ARM, BodyPosition.RIGHT),
+            new SkinZone(48, 32, 4, 12, false, BodyPart.RIGHT_ARM, BodyPosition.LEFT),
+            new SkinZone(44, 44, 4, 4, false, BodyPart.RIGHT_ARM, BodyPosition.TOP),
+            new SkinZone(48, 44, 4, 4, false, BodyPart.RIGHT_ARM, BodyPosition.BOTTOM),
+
+            //Left Arm
+            new SkinZone(36, 0, 4, 12, false, BodyPart.LEFT_ARM, BodyPosition.FRONT),
+            new SkinZone(44, 0, 4, 12, false, BodyPart.LEFT_ARM, BodyPosition.BACK),
+            new SkinZone(32, 0, 4, 12, false, BodyPart.LEFT_ARM, BodyPosition.RIGHT),
+            new SkinZone(40, 0, 4, 12, false, BodyPart.LEFT_ARM, BodyPosition.LEFT),
+            new SkinZone(36, 12, 4, 4, false, BodyPart.LEFT_ARM, BodyPosition.TOP),
+            new SkinZone(40, 12, 4, 4, false, BodyPart.LEFT_ARM, BodyPosition.BOTTOM),
+
+            //Right Leg
+            new SkinZone(4, 32, 4, 12, false, BodyPart.RIGHT_LEG, BodyPosition.FRONT),
+            new SkinZone(12, 32, 4, 12, false, BodyPart.RIGHT_LEG, BodyPosition.BACK),
+            new SkinZone(0, 32, 4, 12, false, BodyPart.RIGHT_LEG, BodyPosition.RIGHT),
+            new SkinZone(8, 32, 4, 12, false, BodyPart.RIGHT_LEG, BodyPosition.LEFT),
+            new SkinZone(4, 44, 4, 4, false, BodyPart.RIGHT_LEG, BodyPosition.TOP),
+            new SkinZone(8, 44, 4, 4, false, BodyPart.RIGHT_LEG, BodyPosition.BOTTOM),
+
+            //Left Leg
+            new SkinZone(20, 0, 4, 12, false, BodyPart.LEFT_LEG, BodyPosition.FRONT),
+            new SkinZone(28, 0, 4, 12, false, BodyPart.LEFT_LEG, BodyPosition.BACK),
+            new SkinZone(16, 0, 4, 12, false, BodyPart.LEFT_LEG, BodyPosition.RIGHT),
+            new SkinZone(24, 0, 4, 12, false, BodyPart.LEFT_LEG, BodyPosition.LEFT),
+            new SkinZone(20, 12, 4, 4, false, BodyPart.LEFT_LEG, BodyPosition.TOP),
+            new SkinZone(24, 12, 4, 4, false, BodyPart.LEFT_LEG, BodyPosition.BOTTOM),
+
             //Overlays
+
+            //Head
             new SkinZone(40, 48, 8, 8, true, BodyPart.HEAD, BodyPosition.FRONT),
             new SkinZone(56, 48, 8, 8, true, BodyPart.HEAD, BodyPosition.BACK),
             new SkinZone(32, 48, 8, 8, true, BodyPart.HEAD, BodyPosition.RIGHT),
             new SkinZone(48, 48, 8, 8, true, BodyPart.HEAD, BodyPosition.LEFT),
             new SkinZone(40, 56, 8, 8, true, BodyPart.HEAD, BodyPosition.TOP),
-            new SkinZone(48, 56, 8, 8, true, BodyPart.HEAD, BodyPosition.BOTTOM)
+            new SkinZone(48, 56, 8, 8, true, BodyPart.HEAD, BodyPosition.BOTTOM),
+
+            //Body
+            new SkinZone(20, 16, 8, 12, true, BodyPart.BODY, BodyPosition.FRONT),
+            new SkinZone(32, 16, 8, 12, true, BodyPart.BODY, BodyPosition.BACK),
+            new SkinZone(16, 16, 4, 12, true, BodyPart.BODY, BodyPosition.RIGHT),
+            new SkinZone(28, 16, 4, 12, true, BodyPart.BODY, BodyPosition.LEFT),
+            new SkinZone(20, 28, 8, 4, true, BodyPart.BODY, BodyPosition.TOP),
+            new SkinZone(28, 28, 8, 4, true, BodyPart.BODY, BodyPosition.BOTTOM),
+
+            //Right Arm
+            new SkinZone(44, 16, 4, 12, true, BodyPart.RIGHT_ARM, BodyPosition.FRONT),
+            new SkinZone(52, 16, 4, 12, true, BodyPart.RIGHT_ARM, BodyPosition.BACK),
+            new SkinZone(40, 16, 4, 12, true, BodyPart.RIGHT_ARM, BodyPosition.RIGHT),
+            new SkinZone(48, 16, 4, 12, true, BodyPart.RIGHT_ARM, BodyPosition.LEFT),
+            new SkinZone(44, 28, 4, 4, true, BodyPart.RIGHT_ARM, BodyPosition.TOP),
+            new SkinZone(48, 28, 4, 4, true, BodyPart.RIGHT_ARM, BodyPosition.BOTTOM),
+
+            //Left Arm
+            new SkinZone(52, 0, 4, 12, true, BodyPart.LEFT_ARM, BodyPosition.FRONT),
+            new SkinZone(60, 0, 4, 12, true, BodyPart.LEFT_ARM, BodyPosition.BACK),
+            new SkinZone(48, 0, 4, 12, true, BodyPart.LEFT_ARM, BodyPosition.RIGHT),
+            new SkinZone(56, 0, 4, 12, true, BodyPart.LEFT_ARM, BodyPosition.LEFT),
+            new SkinZone(52, 12, 4, 4, true, BodyPart.LEFT_ARM, BodyPosition.TOP),
+            new SkinZone(56, 12, 4, 4, true, BodyPart.LEFT_ARM, BodyPosition.BOTTOM),
+
+            //Right Leg
+            new SkinZone(4, 16, 4, 12, true, BodyPart.RIGHT_LEG, BodyPosition.FRONT),
+            new SkinZone(12, 16, 4, 12, true, BodyPart.RIGHT_LEG, BodyPosition.BACK),
+            new SkinZone(0, 16, 4, 12, true, BodyPart.RIGHT_LEG, BodyPosition.RIGHT),
+            new SkinZone(8, 16, 4, 12, true, BodyPart.RIGHT_LEG, BodyPosition.LEFT),
+            new SkinZone(4, 28, 4, 4, true, BodyPart.RIGHT_LEG, BodyPosition.TOP),
+            new SkinZone(8, 28, 4, 4, true, BodyPart.RIGHT_LEG, BodyPosition.BOTTOM),
+
+            //Left Leg
+            new SkinZone(4, 0, 4, 12, true, BodyPart.LEFT_LEG, BodyPosition.FRONT),
+            new SkinZone(12, 0, 4, 12, true, BodyPart.LEFT_LEG, BodyPosition.BACK),
+            new SkinZone(0, 0, 4, 12, true, BodyPart.LEFT_LEG, BodyPosition.RIGHT),
+            new SkinZone(8, 0, 4, 12, true, BodyPart.LEFT_LEG, BodyPosition.LEFT),
+            new SkinZone(4, 12, 4, 4, true, BodyPart.LEFT_LEG, BodyPosition.TOP),
+            new SkinZone(8, 12, 4, 4, true, BodyPart.LEFT_LEG, BodyPosition.BOTTOM)
     );
 
     private String uuid;
@@ -103,6 +180,7 @@ public class Player3DSkinHologram implements Hologram {
     private String playerUUID;
     private Location location;
     float pixelSize = 1f;
+    private boolean isSlim = false;
 
     private List<TextDisplay> displays = new ArrayList<>();
 
@@ -122,12 +200,20 @@ public class Player3DSkinHologram implements Hologram {
     private void loadPlayerSkin() {
         try {
             NetworkUtility.getPlayerSkin(playerUUID).thenAccept(skin -> {
-                boolean isSlim = skin[55][54].getAlpha() == 0; //ToDo: Slim Skin Zones
+                isSlim = skin[55][54].getAlpha() == 0;
 
                 for(SkinZone zone : skinZones) {
-                    List<Pixel> optimizedPixels = buildPixelMap(PixelUtility.extractRegion(
-                            skin, zone.startX, zone.startY, zone.xSize, zone.ySize
-                    ));
+                    List<Pixel> optimizedPixels;
+                    if(zone.bodyPart.equals(BodyPart.LEFT_ARM) || zone.bodyPart.equals(BodyPart.RIGHT_ARM)) {
+                         optimizedPixels = buildPixelMap(PixelUtility.extractRegion(
+                                skin, zone.startX, zone.startY, zone.xSize-(isSlim ? 1 : 0), zone.ySize
+                         ));
+                    }
+                    else {
+                        optimizedPixels = buildPixelMap(PixelUtility.extractRegion(
+                                skin, zone.startX, zone.startY, zone.xSize, zone.ySize
+                        ));
+                    }
                     zonePixels.put(zone, optimizedPixels);
                 }
 
@@ -223,7 +309,6 @@ public class Player3DSkinHologram implements Hologram {
                 };
 
             }
-
             else if(zone.bodyPart.equals(BodyPart.BODY)) {
                 offsetDefiner = switch (zone.bodyPosition) {
                     case FRONT -> (pixel, base) -> new Vector3f(
@@ -257,7 +342,43 @@ public class Player3DSkinHologram implements Hologram {
                             (zone.xSize - pixel.y) * pixelSizeDiv8 - pixelSizeDiv8 * (zone.xSize) + zBodyOffset
                     );
                 };
-
+            }
+            else if(zone.bodyPart.equals(BodyPart.RIGHT_ARM) ||
+                    zone.bodyPart.equals(BodyPart.LEFT_ARM) ||
+                    zone.bodyPart.equals(BodyPart.RIGHT_LEG) ||
+                    zone.bodyPart.equals(BodyPart.LEFT_LEG)) {
+                offsetDefiner = switch (zone.bodyPosition) {
+                    case FRONT -> (pixel, base) -> new Vector3f(
+                            base.x + xBodyOffset,
+                            base.y + yBodyOffset,
+                            base.z + overlayOffset + zBodyOffset
+                    );
+                    case BACK -> (pixel, base) -> new Vector3f(
+                            (zone.xSize - pixel.x) * pixelSizeDiv8 - (pixel.width * pixelSizeDiv20) + xBodyOffset,
+                            base.y + yBodyOffset,
+                            base.z - pixelSizeDiv8 * (zone.xSize) - overlayOffset + zBodyOffset
+                    );
+                    case RIGHT -> (pixel, base) -> new Vector3f(
+                            base.z - overlayOffset + xBodyOffset,
+                            base.y + yBodyOffset,
+                            base.x - pixelSizeDiv8 * zone.xSize + zBodyOffset
+                    );
+                    case LEFT -> (pixel, base) -> new Vector3f(
+                            base.z + pixelSizeDiv8 * (zone.xSize) + overlayOffset + xBodyOffset,
+                            base.y + yBodyOffset,
+                            (zone.xSize - pixel.x) * pixelSizeDiv8 - (pixel.width * pixelSizeDiv20) - pixelSizeDiv8 * zone.xSize + zBodyOffset
+                    );
+                    case TOP -> (pixel, base) -> new Vector3f(
+                            base.x + xBodyOffset,
+                            base.z + pixelSizeDiv8 * (zone.xSize*3f) + overlayOffset + yBodyOffset,
+                            (zone.ySize - pixel.y) * pixelSizeDiv8 - pixelSizeDiv8 * (zone.xSize) + zBodyOffset
+                    );
+                    case BOTTOM -> (pixel, base) -> new Vector3f(
+                            (zone.xSize - pixel.x) * pixelSizeDiv8 - (pixel.width * pixelSizeDiv20) + xBodyOffset,
+                            base.z - overlayOffset + yBodyOffset,
+                            (zone.xSize - pixel.y) * pixelSizeDiv8 - pixelSizeDiv8 * (zone.xSize) + zBodyOffset
+                    );
+                };
             }
             spawnPixels(pixels, zone.bodyPosition.rotation, offsetDefiner, zone.xSize);
         }
