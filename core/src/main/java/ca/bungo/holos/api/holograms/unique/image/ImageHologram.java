@@ -1,13 +1,18 @@
 package ca.bungo.holos.api.holograms.unique.image;
 
 import ca.bungo.holos.BungosHolos;
+import ca.bungo.holos.api.animations.Animation;
+import ca.bungo.holos.api.holograms.Animatable;
+import ca.bungo.holos.api.holograms.Editable;
 import ca.bungo.holos.api.holograms.Hologram;
 import ca.bungo.holos.api.holograms.SimpleHologram;
+import ca.bungo.holos.utility.ComponentUtility;
 import ca.bungo.holos.utility.NetworkUtility;
 import ca.bungo.holos.utility.PixelUtility;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -15,12 +20,17 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.entity.Display;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Transformation;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.AxisAngle4f;
+import org.joml.Vector2f;
 import org.joml.Vector3f;
 
 import java.io.File;
@@ -194,18 +204,21 @@ public class ImageHologram implements Hologram {
         }
     }
 
-    public static class Player2DSkinHologram extends ImageHologram implements ConfigurationSerializable {
+    @Getter
+    @Setter
+    public static class Player2DSkinHologram extends ImageHologram implements ConfigurationSerializable, Editable, Animatable {
+
         public enum HologramType {
             HEAD,FULL
         }
 
-        @Getter
-        @Setter
         private String playerUUID;
-
-        @Getter
-        @Setter
         private HologramType type;
+
+        private boolean playing = false;
+        private Animation animation;
+        private BukkitTask animationTask;
+
 
         private boolean isLoaded = false;
         private boolean loadAttempted = false;
@@ -223,7 +236,7 @@ public class ImageHologram implements Hologram {
             try {
                 NetworkUtility.getPlayerSkin(this.playerUUID).thenAccept(skin -> {
                     this.setColors(skin);
-                    boolean isSlim = skin[55][54].getAlpha() == 0;
+                    boolean isSlim = skin[55][40].getAlpha() == 0;
 
                     if(type == HologramType.HEAD) {
                         Color[][] head = PixelUtility.extractRegion(skin, 8, 48, 8, 8);
@@ -323,6 +336,227 @@ public class ImageHologram implements Hologram {
             hologram.setLocation(location);
             if(!BungosHolos.DISABLED && location != null) hologram.spawn(location);
             return hologram;
+        }
+
+        @Override
+        public void loadAnimation(Animation animation) {
+            this.animation = animation.clone();
+        }
+
+        @Override
+        public void playAnimation() {
+            if(animation == null) return;
+            if(animationTask != null) stopAnimation();
+
+            animationTask = new BukkitRunnable() {
+                private int progress = 0;
+
+                public void run() {
+                    if(progress >= animation.getTickTime() && animation.isLoopable()) progress = 0;
+                    if(playing) return;
+
+                    Vector3f offset = animation.getPositionOffset(progress);
+                    Vector2f rotation = animation.getRotationOffset(progress);
+                    Location newLocation = getLocation().clone().add(new Vector(offset.x, offset.y, offset.z));
+                    newLocation.setYaw(newLocation.getYaw() + rotation.x);
+                    newLocation.setPitch(newLocation.getPitch() + rotation.y);
+
+                    teleport(newLocation, false);
+
+                    progress++;
+                }
+            }.runTaskTimer(BungosHolos.get(), 1, 1);
+        }
+
+        @Override
+        public void stopAnimation() {
+            if(animationTask != null) {
+                animationTask.cancel();
+                animationTask = null;
+                teleport(getLocation(), false);
+                return;
+            }
+        }
+
+        @Override
+        public void toggleAnimation() {
+            playing = !playing;
+        }
+
+
+        @Override
+        public boolean onEdit(@NotNull Player editor, @Nullable String field, String... values) {
+            String editMessage = """
+                &eHere are the fields that you're able to edit for this 3D Player Hologram:
+                <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit player UUID/Name'>&bplayer UUID/Name &e- What skin should this be
+                <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit type HEAD/FULL'>&btype Head/Type &e- What hologram type should be used
+                <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit yaw VALUE'>&byaw Number &e- Set the yaw of the hologram
+                <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit pitch VALUE'>&bpitch Number &e- Set the pitch of the hologram
+                <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit size VALUE'>&bsize Number &e- Set the size of the hologram (0.5 default)""";
+            if(field == null || field.isEmpty()){
+                editor.sendMessage(ComponentUtility.convertToComponent(editMessage));
+                return true;
+            }
+
+            boolean successful = false;
+            switch(field.toLowerCase()){
+                case "player" -> {
+                    if(values.length == 0) {
+                        editor.sendMessage(ComponentUtility.convertToComponent("&cYou must specify a player UUID!"));
+                        return false;
+                    }
+                    String who = values[0];
+
+                    if(who.length() == 36) {
+                        setPlayerUUID(who);
+                        isLoaded = false;
+                        loadPlayerSkin();
+                        spawn(this.getLocation());
+                        return true;
+                    }
+                    else {
+                        Player target = Bukkit.getPlayer(who);
+                        if(target == null) {
+                            editor.sendMessage(ComponentUtility.convertToComponent("&cThat player doesn't exist!"));
+                            return false;
+                        }
+                        this.setPlayerUUID(target.getUniqueId().toString());
+                        isLoaded = false;
+                        loadPlayerSkin();
+                        spawn(this.getLocation());
+                        successful = true;
+                    }
+                }
+                case "type" -> {
+                    if(values.length == 0) {
+                        editor.sendMessage(ComponentUtility.convertToComponent("&cYou must specify a type!"));
+                        return false;
+                    }
+                    try {
+                        HologramType type = HologramType.valueOf(values[0].toUpperCase());
+                        this.setType(type);
+                        isLoaded = false;
+                        loadPlayerSkin();
+                        spawn(this.getLocation());
+                        successful = true;
+                        editor.sendMessage(ComponentUtility.convertToComponent("&aSuccessfully set type to &e" + values[0]));
+                    } catch (IllegalArgumentException e) {
+                        editor.sendMessage(ComponentUtility.convertToComponent("&cInvalid type!"));
+                        return true;
+                    }
+                }
+                case "yaw" -> {
+                    if(values.length == 0) {
+                        editor.sendMessage(ComponentUtility.convertToComponent("&cYou must specify a yaw!"));
+                        return false;
+                    }
+                    Location location = this.getLocation().clone();
+                    try {
+                        float yaw = Float.parseFloat(values[0]);
+                        location.setYaw(yaw);
+                        this.teleport(location);
+                        successful = true;
+                        editor.sendMessage(ComponentUtility.convertToComponent("&aSuccessfully set yaw to &e" + yaw));
+                    } catch (NumberFormatException e){
+                        editor.sendMessage(ComponentUtility.convertToComponent("&cInvalid number format!"));
+                        return true;
+                    }
+                }
+                case "pitch" -> {
+                    if(values.length == 0) {
+                        editor.sendMessage(ComponentUtility.convertToComponent("&cYou must specify a pitch!"));
+                        return false;
+                    }
+                    Location location = this.getLocation().clone();
+                    try {
+                        float pitch = Float.parseFloat(values[0]);
+                        location.setPitch(pitch);
+                        this.teleport(location);
+                        successful = true;
+                        editor.sendMessage(ComponentUtility.convertToComponent("&aSuccessfully set pitch to &e" + pitch));
+                    } catch (NumberFormatException e){
+                        editor.sendMessage(ComponentUtility.convertToComponent("&cInvalid number format!"));
+                        return true;
+                    }
+                }
+                case "size" -> {
+                    if(values.length == 0) {
+                        editor.sendMessage(ComponentUtility.convertToComponent("&cYou must specify a scale!"));
+                        return false;
+                    }
+                    float size = Float.parseFloat(values[0]);
+                    this.setPixelSize(size);
+                    spawn(this.getLocation());
+                    successful = true;
+                    editor.sendMessage(ComponentUtility.convertToComponent("&aSuccessfully set size to &e" + size));
+                }
+                case "animation" -> {
+                    if(values.length == 0){
+                        editor.sendMessage(Component.text("You must supply a value!", NamedTextColor.RED));
+                        break;
+                    }
+
+                    if(animation == null || !(animation instanceof Editable editable)){
+                        editor.sendMessage(Component.text("This hologram animation does not support editing!", NamedTextColor.RED));
+                        break;
+                    }
+
+                    String argument = values[0];
+                    if(argument.equalsIgnoreCase("play")){
+                        playAnimation();
+                        successful = true;
+                        editor.sendMessage(Component.text("Started the animation!", NamedTextColor.YELLOW));
+                    }
+                    else if(argument.equalsIgnoreCase("stop")){
+                        stopAnimation();
+                        successful = true;
+                        editor.sendMessage(Component.text("Stopped the animation!", NamedTextColor.YELLOW));
+                    }
+                    else if(argument.equalsIgnoreCase("toggle")){
+                        toggleAnimation();
+                        successful = true;
+                        editor.sendMessage(Component.text("Toggled the animation!", NamedTextColor.YELLOW));
+                    }
+                    else {
+                        successful = editable.onEdit(editor, argument, Arrays.copyOfRange(values, 1, values.length));
+                    }
+                }
+            }
+
+            return successful;
+        }
+
+        @Override
+        public List<String> options(String option) {
+            return switch(option.toLowerCase()) {
+                case "player" -> List.of("<uuid/name>");
+                case "yaw", "pitch", "size" -> List.of("<number>");
+                case "animation" -> {
+                    if(animation != null && animation instanceof Editable editable){
+                        List<String> editableOptions = new ArrayList<>(editable.fields());
+                        editableOptions.add("toggle");
+                        editableOptions.add("stop");
+                        editableOptions.add("play");
+                        editableOptions.add("remove");
+                        yield editableOptions;
+                    }
+                    yield List.of("");
+                }
+                case "type" -> List.of(HologramType.HEAD.name(), HologramType.FULL.name());
+                default -> List.of();
+            };
+        }
+
+        @Override
+        public List<String> fields() {
+            return List.of(
+                    "player",
+                    "type",
+                    "yaw",
+                    "pitch",
+                    "size",
+                    "animation"
+            );
         }
     }
 
