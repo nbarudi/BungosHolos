@@ -202,6 +202,8 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
     private boolean playing;
     private BukkitTask animationTask;
 
+    private Display.Billboard billboard = Display.Billboard.FIXED;
+
     private Map<SkinZone, List<Pixel>> zonePixels = new HashMap<>();
     private Map<BodyPart, List<TextDisplay>> perLimbDisplays = new HashMap<>();
     private Map<String, List<Pixel>> playerPixels = new HashMap<>();
@@ -221,7 +223,6 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
         try {
             NetworkUtility.getPlayerSkin(playerUUID).thenAccept(skin -> {
                 isSlim = skin[55][40].getAlpha() == 0;
-                BungosHolos.LOGGER.error("Slim: {} | Alpha: {}", isSlim, skin[37][54].getAlpha());
 
                 for (SkinZone zone : skinZones) {
                     List<Pixel> optimizedPixels = buildPixelMap(PixelUtility.extractRegion(
@@ -624,10 +625,14 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
                         transformation.getLeftRotation().premul(new Quaternionf(yAngle));
 
                         display.setTransformation(transformation);
+                        display.setBillboard(billboard);
                     });
                     index++;
                 }
-                if(index >= toSpawn.size()) this.cancel();
+                if(index >= toSpawn.size()) {
+                    this.cancel();
+                }
+
             }
         }.runTaskTimerAsynchronously(BungosHolos.get(), 0, 1);
     }
@@ -689,6 +694,13 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
         zonePixels.clear();
     }
 
+    public void setDisplayMode(Display.Billboard billboard) {
+        this.billboard = billboard;
+        for(TextDisplay display : getDisplays()){
+            display.setBillboard(billboard);
+        }
+    }
+
     @Override
     public void teleport(Location location) {
         this.location = location;
@@ -711,6 +723,7 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
         result.put("player_uuid", playerUUID);
         result.put("location", location);
         result.put("pixel_size", pixelSize);
+        result.put("billboard", billboard.name());
         if (BungosHolos.get().hologramRegistry.fetchAlias(this.getUniqueIdentifier()) != null) {
             result.put("alias", BungosHolos.get().hologramRegistry.fetchAlias(this.getUniqueIdentifier()));
         }
@@ -723,14 +736,17 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
         String playerUUID = (String) data.get("player_uuid");
         float pixelSize = (float) ((double)data.get("pixel_size"));
         Player3DSkinHologram hologram = new Player3DSkinHologram(playerUUID);
+        String billboard = (String) data.get("billboard");
         BungosHolos.get().hologramRegistry.unregisterHologram(hologram);
         hologram.setPixelSize(pixelSize);
         hologram.setUuid(uuid);
         hologram.setLocation(location);
+        hologram.setBillboard(Display.Billboard.valueOf(billboard));
         String alias = (String) data.get("alias");
         if(alias != null) {
             BungosHolos.get().hologramRegistry.defineAlias(hologram.getUniqueIdentifier(), alias, true);
         }
+
         if(location != null && !BungosHolos.DISABLED) hologram.spawn(hologram.getLocation());
 
         return hologram;
@@ -741,6 +757,7 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
         String editMessage = """
                 &eHere are the fields that you're able to edit for this 3D Player Hologram:
                 <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit player UUID/Name'>&bplayer UUID/Name &e- What skin should this be
+                <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit billboard Billboard'>&bbillboard Billboard Type &e- Set billboard type for the hologram
                 <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit yaw VALUE'>&byaw Number &e- Set the yaw of the hologram
                 <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit pitch VALUE'>&bpitch Number &e- Set the pitch of the hologram
                 <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit size VALUE'>&bsize Number &e- Set the size of the hologram (0.5 default)""";
@@ -776,6 +793,21 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
                     loadPlayerSkin();
                     spawn(this.getLocation());
                     successful = true;
+                }
+            }
+            case "billboard" -> {
+                if(values.length == 0) {
+                    editor.sendMessage(ComponentUtility.convertToComponent("&cYou must specify a billboard!"));
+                    return false;
+                }
+                try {
+                    Display.Billboard billboard = Display.Billboard.valueOf(values[0].toUpperCase());
+                    this.setDisplayMode(billboard);
+                    successful = true;
+                    editor.sendMessage(ComponentUtility.convertToComponent("&aSuccessfully set billboard to &e" + values[0]));
+                } catch (IllegalArgumentException e) {
+                    editor.sendMessage(ComponentUtility.convertToComponent("&cInvalid billboard!"));
+                    return true;
                 }
             }
             case "yaw" -> {
@@ -875,6 +907,7 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
                 }
                 yield List.of("");
             }
+            case "billboard" -> Arrays.stream(Display.Billboard.values()).map(Enum::name).toList();
             default -> List.of();
         };
     }
@@ -886,7 +919,8 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
                 "yaw",
                 "pitch",
                 "size",
-                "animation"
+                "animation",
+                "billboard"
         );
     }
 

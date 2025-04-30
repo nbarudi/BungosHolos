@@ -53,6 +53,8 @@ public class ImageHologram implements Hologram {
 
     private List<Pixel> pixels = new ArrayList<>();
 
+    private Display.Billboard billboard = Display.Billboard.FIXED;
+
     public ImageHologram(Color[][] colors) {
         uuid = UUID.randomUUID().toString();
         this.colors = colors;
@@ -113,10 +115,13 @@ public class ImageHologram implements Hologram {
                         );
 
                         display.setTransformation(transformation);
+                        display.setBillboard(billboard);
                     });
                     index++;
                 }
-                if(index >= pixels.size()) this.cancel();
+                if(index >= pixels.size()) {
+                    this.cancel();
+                }
             }
         }.runTaskTimerAsynchronously(BungosHolos.get(), 0, 1);
     }
@@ -166,6 +171,13 @@ public class ImageHologram implements Hologram {
     public void remove() {
         cleanup();
         BungosHolos.get().hologramRegistry.unregisterHologram(this);
+    }
+
+    public void setDisplayMode(Display.Billboard billboard) {
+        this.billboard = billboard;
+        for(TextDisplay display : getDisplays()){
+            display.setBillboard(billboard);
+        }
     }
 
     @Override
@@ -319,6 +331,10 @@ public class ImageHologram implements Hologram {
             result.put("player_uuid", this.getPlayerUUID());
             result.put("pixel_size", this.getPixelSize());
             result.put("type", this.getType().name());
+            result.put("billboard", getBillboard().name());
+            if (BungosHolos.get().hologramRegistry.fetchAlias(this.getUniqueIdentifier()) != null) {
+                result.put("alias", BungosHolos.get().hologramRegistry.fetchAlias(this.getUniqueIdentifier()));
+            }
             return result;
         }
 
@@ -328,12 +344,19 @@ public class ImageHologram implements Hologram {
             String playerUUID = (String) args.get("player_uuid");
             float pixelSize = (float) ((double)args.get("pixel_size"));
             HologramType type = HologramType.valueOf((String) args.get("type"));
+            String billboard = (String) args.get("billboard");
 
             Player2DSkinHologram hologram = new Player2DSkinHologram(playerUUID, type);
             BungosHolos.get().hologramRegistry.unregisterHologram(hologram);
             hologram.setUuid(uuid);
             hologram.setPixelSize(pixelSize);
             hologram.setLocation(location);
+            hologram.setBillboard(Display.Billboard.valueOf(billboard));
+            String alias = (String) args.get("alias");
+            if(alias != null) {
+                BungosHolos.get().hologramRegistry.defineAlias(hologram.getUniqueIdentifier(), alias, true);
+            }
+
             if(!BungosHolos.DISABLED && location != null) hologram.spawn(location);
             return hologram;
         }
@@ -390,6 +413,7 @@ public class ImageHologram implements Hologram {
                 &eHere are the fields that you're able to edit for this 3D Player Hologram:
                 <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit player UUID/Name'>&bplayer UUID/Name &e- What skin should this be
                 <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit type HEAD/FULL'>&btype Head/Type &e- What hologram type should be used
+                <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit billboard Billboard'>&bbillboard Billboard Type &e- Set billboard type for the hologram
                 <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit yaw VALUE'>&byaw Number &e- Set the yaw of the hologram
                 <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit pitch VALUE'>&bpitch Number &e- Set the pitch of the hologram
                 <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit size VALUE'>&bsize Number &e- Set the size of the hologram (0.5 default)""";
@@ -442,6 +466,21 @@ public class ImageHologram implements Hologram {
                         editor.sendMessage(ComponentUtility.convertToComponent("&aSuccessfully set type to &e" + values[0]));
                     } catch (IllegalArgumentException e) {
                         editor.sendMessage(ComponentUtility.convertToComponent("&cInvalid type!"));
+                        return true;
+                    }
+                }
+                case "billboard" -> {
+                    if(values.length == 0) {
+                        editor.sendMessage(ComponentUtility.convertToComponent("&cYou must specify a billboard!"));
+                        return false;
+                    }
+                    try {
+                        Display.Billboard billboard = Display.Billboard.valueOf(values[0].toUpperCase());
+                        this.setDisplayMode(billboard);
+                        successful = true;
+                        editor.sendMessage(ComponentUtility.convertToComponent("&aSuccessfully set billboard to &e" + values[0]));
+                    } catch (IllegalArgumentException e) {
+                        editor.sendMessage(ComponentUtility.convertToComponent("&cInvalid billboard!"));
                         return true;
                     }
                 }
@@ -542,6 +581,7 @@ public class ImageHologram implements Hologram {
                     }
                     yield List.of("");
                 }
+                case "billboard" -> Arrays.stream(Display.Billboard.values()).map(Enum::name).toList();
                 case "type" -> List.of(HologramType.HEAD.name(), HologramType.FULL.name());
                 default -> List.of();
             };
@@ -552,6 +592,7 @@ public class ImageHologram implements Hologram {
             return List.of(
                     "player",
                     "type",
+                    "billboard",
                     "yaw",
                     "pitch",
                     "size",
