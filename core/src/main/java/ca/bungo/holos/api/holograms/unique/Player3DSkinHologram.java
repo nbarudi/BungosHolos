@@ -1,15 +1,15 @@
 package ca.bungo.holos.api.holograms.unique;
 
 import ca.bungo.holos.BungosHolos;
-import ca.bungo.holos.api.holograms.Hologram;
-import ca.bungo.holos.api.holograms.SimpleHologram;
-import ca.bungo.holos.api.holograms.unique.image.ImageHologram;
-import ca.bungo.holos.registries.HologramRegistry;
+import ca.bungo.holos.api.animations.Animation;
+import ca.bungo.holos.api.holograms.*;
+import ca.bungo.holos.utility.ComponentUtility;
 import ca.bungo.holos.utility.NetworkUtility;
 import ca.bungo.holos.utility.PixelUtility;
 import lombok.Getter;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -17,11 +17,15 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.entity.Display;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Transformation;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.AxisAngle4f;
 import org.joml.Quaternionf;
 import org.joml.Vector2f;
@@ -31,11 +35,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.util.function.Consumer;
 
 @Getter
 @Setter
-public class Player3DSkinHologram implements Hologram, ConfigurationSerializable {
+public class Player3DSkinHologram implements Hologram, ConfigurationSerializable, Editable, Animatable {
 
     private interface OffsetDefiner {
         Vector3f defineOffset(Pixel pixel, Vector3f baseOffset);
@@ -195,8 +198,13 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
     private boolean loaded = false;
     private boolean loadAttempted = false;
 
+    private Animation animation;
+    private boolean playing;
+    private BukkitTask animationTask;
+
     private Map<SkinZone, List<Pixel>> zonePixels = new HashMap<>();
     private Map<BodyPart, List<TextDisplay>> perLimbDisplays = new HashMap<>();
+    private Map<String, List<Pixel>> playerPixels = new HashMap<>();
 
     public Player3DSkinHologram(String playerUUID) {
         uuid = UUID.randomUUID().toString();
@@ -208,12 +216,14 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
         loadPlayerSkin();
     }
 
+
     private void loadPlayerSkin() {
         try {
             NetworkUtility.getPlayerSkin(playerUUID).thenAccept(skin -> {
-                isSlim = skin[55][54].getAlpha() == 0;
+                isSlim = skin[55][40].getAlpha() == 0;
+                BungosHolos.LOGGER.error("Slim: {} | Alpha: {}", isSlim, skin[37][54].getAlpha());
 
-                for(SkinZone zone : skinZones) {
+                for (SkinZone zone : skinZones) {
                     List<Pixel> optimizedPixels = buildPixelMap(PixelUtility.extractRegion(
                             skin,
                             isSlim ? zone.startSlimX : zone.startX,
@@ -223,16 +233,14 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
                     ));
                     zonePixels.put(zone, optimizedPixels);
                 }
-
                 loaded = true;
                 if(loadAttempted) {
                     Bukkit.getScheduler().runTask(BungosHolos.get(), () -> spawn(this.getLocation()));
                 }
             });
         } catch (URISyntaxException e) {
-            BungosHolos.LOGGER.warn("Failed to load player skin for {}", playerUUID, e);
+            BungosHolos.LOGGER.warn("Failed to get player pixel map for {}", uuid, e);
         }
-
     }
 
     private List<Pixel> buildPixelMap(Color[][] colors) {
@@ -262,12 +270,12 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
             loadAttempted = true;
             return;
         }
-        spawn3DHologram();
+        spawn3DHologram(zonePixels);
     }
 
-    private void spawn3DHologram() {
+    private void spawn3DHologram(Map<SkinZone, List<Pixel>> data) {
         cleanup();
-        for(Map.Entry<SkinZone, List<Pixel>> entry : zonePixels.entrySet()) {
+        for(Map.Entry<SkinZone, List<Pixel>> entry : data.entrySet()) {
             SkinZone zone = entry.getKey();
             List<Pixel> pixels = entry.getValue();
 
@@ -703,6 +711,9 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
         result.put("player_uuid", playerUUID);
         result.put("location", location);
         result.put("pixel_size", pixelSize);
+        if (BungosHolos.get().hologramRegistry.fetchAlias(this.getUniqueIdentifier()) != null) {
+            result.put("alias", BungosHolos.get().hologramRegistry.fetchAlias(this.getUniqueIdentifier()));
+        }
         return result;
     }
 
@@ -716,8 +727,214 @@ public class Player3DSkinHologram implements Hologram, ConfigurationSerializable
         hologram.setPixelSize(pixelSize);
         hologram.setUuid(uuid);
         hologram.setLocation(location);
+        String alias = (String) data.get("alias");
+        if(alias != null) {
+            BungosHolos.get().hologramRegistry.defineAlias(hologram.getUniqueIdentifier(), alias, true);
+        }
         if(location != null && !BungosHolos.DISABLED) hologram.spawn(hologram.getLocation());
 
         return hologram;
     }
+
+    @Override
+    public boolean onEdit(@NotNull Player editor, @Nullable String field, String... values) {
+        String editMessage = """
+                &eHere are the fields that you're able to edit for this 3D Player Hologram:
+                <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit player UUID/Name'>&bplayer UUID/Name &e- What skin should this be
+                <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit yaw VALUE'>&byaw Number &e- Set the yaw of the hologram
+                <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit pitch VALUE'>&bpitch Number &e- Set the pitch of the hologram
+                <hover:show_text:'&eClick to edit field'><click:suggest_command:'/holo edit size VALUE'>&bsize Number &e- Set the size of the hologram (0.5 default)""";
+        if(field == null || field.isEmpty()){
+            editor.sendMessage(ComponentUtility.convertToComponent(editMessage));
+            return true;
+        }
+
+        boolean successful = false;
+        switch(field.toLowerCase()){
+            case "player" -> {
+                if(values.length == 0) {
+                    editor.sendMessage(ComponentUtility.convertToComponent("&cYou must specify a player UUID!"));
+                    return false;
+                }
+                String who = values[0];
+
+                if(who.length() == 36) {
+                    setPlayerUUID(who);
+                    loaded = false;
+                    loadPlayerSkin();
+                    spawn(this.getLocation());
+                    return true;
+                }
+                else {
+                    Player target = Bukkit.getPlayer(who);
+                    if(target == null) {
+                        editor.sendMessage(ComponentUtility.convertToComponent("&cThat player doesn't exist!"));
+                        return false;
+                    }
+                    this.setPlayerUUID(target.getUniqueId().toString());
+                    loaded = false;
+                    loadPlayerSkin();
+                    spawn(this.getLocation());
+                    successful = true;
+                }
+            }
+            case "yaw" -> {
+                if(values.length == 0) {
+                    editor.sendMessage(ComponentUtility.convertToComponent("&cYou must specify a yaw!"));
+                    return false;
+                }
+                Location location = this.getLocation().clone();
+                try {
+                    float yaw = Float.parseFloat(values[0]);
+                    location.setYaw(yaw);
+                    this.teleport(location);
+                    successful = true;
+                    editor.sendMessage(ComponentUtility.convertToComponent("&aSuccessfully set yaw to &e" + yaw));
+                } catch (NumberFormatException e){
+                    editor.sendMessage(ComponentUtility.convertToComponent("&cInvalid number format!"));
+                    return true;
+                }
+            }
+            case "pitch" -> {
+                if(values.length == 0) {
+                    editor.sendMessage(ComponentUtility.convertToComponent("&cYou must specify a pitch!"));
+                    return false;
+                }
+                Location location = this.getLocation().clone();
+                try {
+                    float pitch = Float.parseFloat(values[0]);
+                    location.setPitch(pitch);
+                    this.teleport(location);
+                    successful = true;
+                    editor.sendMessage(ComponentUtility.convertToComponent("&aSuccessfully set pitch to &e" + pitch));
+                } catch (NumberFormatException e){
+                    editor.sendMessage(ComponentUtility.convertToComponent("&cInvalid number format!"));
+                    return true;
+                }
+            }
+            case "size" -> {
+                if(values.length == 0) {
+                    editor.sendMessage(ComponentUtility.convertToComponent("&cYou must specify a scale!"));
+                    return false;
+                }
+                float size = Float.parseFloat(values[0]);
+                this.setPixelSize(size);
+                spawn(this.getLocation());
+                successful = true;
+                editor.sendMessage(ComponentUtility.convertToComponent("&aSuccessfully set size to &e" + size));
+            }
+            case "animation" -> {
+                if(values.length == 0){
+                    editor.sendMessage(Component.text("You must supply a value!", NamedTextColor.RED));
+                    break;
+                }
+
+                if(animation == null || !(animation instanceof Editable editable)){
+                    editor.sendMessage(Component.text("This hologram animation does not support editing!", NamedTextColor.RED));
+                    break;
+                }
+
+                String argument = values[0];
+                if(argument.equalsIgnoreCase("play")){
+                    playAnimation();
+                    successful = true;
+                    editor.sendMessage(Component.text("Started the animation!", NamedTextColor.YELLOW));
+                }
+                else if(argument.equalsIgnoreCase("stop")){
+                    stopAnimation();
+                    successful = true;
+                    editor.sendMessage(Component.text("Stopped the animation!", NamedTextColor.YELLOW));
+                }
+                else if(argument.equalsIgnoreCase("toggle")){
+                    toggleAnimation();
+                    successful = true;
+                    editor.sendMessage(Component.text("Toggled the animation!", NamedTextColor.YELLOW));
+                }
+                else {
+                    successful = editable.onEdit(editor, argument, Arrays.copyOfRange(values, 1, values.length));
+                }
+            }
+        }
+
+        return successful;
+    }
+
+    @Override
+    public List<String> options(String option) {
+        return switch(option.toLowerCase()) {
+            case "player" -> List.of("<uuid/name>");
+            case "yaw", "pitch", "size" -> List.of("<number>");
+            case "animation" -> {
+                if(animation != null && animation instanceof Editable editable){
+                    List<String> editableOptions = new ArrayList<>(editable.fields());
+                    editableOptions.add("toggle");
+                    editableOptions.add("stop");
+                    editableOptions.add("play");
+                    editableOptions.add("remove");
+                    yield editableOptions;
+                }
+                yield List.of("");
+            }
+            default -> List.of();
+        };
+    }
+
+    @Override
+    public List<String> fields() {
+        return List.of(
+                "player",
+                "yaw",
+                "pitch",
+                "size",
+                "animation"
+        );
+    }
+
+    @Override
+    public void loadAnimation(Animation animation) {
+        this.animation = animation.clone();
+    }
+
+
+    @Override
+    public void playAnimation() {
+        if(animation == null) return;
+        if(animationTask != null) stopAnimation();
+
+        animationTask = new BukkitRunnable() {
+            private int progress = 0;
+
+            public void run() {
+                if(progress >= animation.getTickTime() && animation.isLoopable()) progress = 0;
+                if(playing) return;
+
+                Vector3f offset = animation.getPositionOffset(progress);
+                Vector2f rotation = animation.getRotationOffset(progress);
+                Location newLocation = getLocation().clone().add(new Vector(offset.x, offset.y, offset.z));
+                newLocation.setYaw(newLocation.getYaw() + rotation.x);
+                newLocation.setPitch(newLocation.getPitch() + rotation.y);
+
+                teleport(newLocation, false);
+
+                progress++;
+            }
+        }.runTaskTimer(BungosHolos.get(), 1, 1);
+    }
+
+    @Override
+    public void stopAnimation() {
+        if(animationTask != null) {
+            animationTask.cancel();
+            animationTask = null;
+            teleport(getLocation(), false);
+            return;
+        }
+    }
+
+    @Override
+    public void toggleAnimation() {
+        playing = !playing;
+    }
+
+
 }
